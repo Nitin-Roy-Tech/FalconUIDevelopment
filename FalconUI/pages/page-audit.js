@@ -1,4 +1,4 @@
-// Falcon Admin — Audit Log Page
+// Falcon Admin — audit page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -43,7 +43,37 @@
         <div id="audit-count" style="margin-top:10px; font-size:12px; color:var(--text-muted);"></div>
       </div>
     </div>
-    `,
+`,
     init: null
   };
 })();
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+async function fetchAudit() {
+  $('btn-fetch-audit').disabled = true;
+  $('audit-tbody').innerHTML = `<tr class="empty-row"><td colspan="5"><span class="spinner"></span>Loading...</td></tr>`;
+  const traderId = parseInt($('audit-trader-id').value) || 0;
+  const module_  = $('audit-module').value.trim();
+  const limit    = parseInt($('audit-limit').value) || 100;
+  try {
+    const data = await sendCommand(CMD.GET_AUDIT_LOG, { traderId, module: module_, limit });
+    const rows = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderAuditTable(rows);
+    $('audit-count').textContent = `${rows.length} event${rows.length !== 1 ? 's' : ''}`;
+  } catch (e) {
+    $('audit-tbody').innerHTML = `<tr class="empty-row"><td colspan="5" style="color:var(--danger)">${e.message}</td></tr>`;
+    $('audit-count').textContent = '';
+  } finally { $('btn-fetch-audit').disabled = false; }
+}
+
+function renderAuditTable(rows) {
+  if (!rows.length) { $('audit-tbody').innerHTML = `<tr class="empty-row"><td colspan="5">No events found</td></tr>`; return; }
+  $('audit-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.time||'—'}</td>
+      <td>${r.traderId}</td>
+      <td>${r.module||'—'}</td>
+      <td>${r.action||'—'}</td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${r.desc||'—'}</td>
+    </tr>`).join('');
+}
