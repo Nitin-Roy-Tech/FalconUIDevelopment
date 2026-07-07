@@ -1,0 +1,3204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Falcon Admin</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #21262d;
+  --border:    #30363d;
+  --accent:    #00c8ff;
+  --accent-d:  #0099cc;
+  --success:   #3fb950;
+  --warn:      #d29922;
+  --danger:    #f85149;
+  --text:      #e6edf3;
+  --text-muted:#7d8590;
+  --sidebar-w: 220px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+       background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
+       display: flex; flex-direction: column; font-size: 14px; }
+
+/* ── Top bar ──────────────────────────────────────────────────────────────── */
+#main-app { display: none; flex-direction: column; height: 100vh; }
+#topbar {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 52px; flex-shrink: 0;
+}
+#topbar .logo { font-weight: 700; font-size: 16px; color: var(--accent);
+                letter-spacing: 2px; }
+#topbar-user { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+#topbar-user span { color: var(--accent); font-weight: 600; }
+#btn-logout { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+              background: transparent; color: var(--text-muted); font-size: 12px;
+              cursor: pointer; }
+#btn-logout:hover { background: var(--surface2); color: var(--danger); border-color: var(--danger); }
+
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+#layout { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+#sidebar {
+  width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; padding: 12px 0; overflow-y: auto;
+}
+.nav-section { padding: 10px 16px 3px; font-size: 10px; font-weight: 600;
+               color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; cursor: pointer;
+  color: var(--text-muted); transition: background .12s, color .12s;
+  font-size: 13px; border-left: 2px solid transparent;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(0,200,255,.08); color: var(--accent);
+                   border-left-color: var(--accent); }
+.nav-item svg { flex-shrink: 0; }
+
+/* ── Main content ─────────────────────────────────────────────────────────── */
+#main { flex: 1; overflow-y: auto; padding: 28px 32px; }
+.page { display: none; }
+.page.active { display: block; }
+h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+.page-sub { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px; margin-bottom: 20px;
+}
+.card-title { font-size: 13px; font-weight: 600; color: var(--text-muted);
+              text-transform: uppercase; letter-spacing: .8px; margin-bottom: 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-header .card-title { margin-bottom: 0; }
+
+/* ── Collapsible cards ────────────────────────────────────────────────────── */
+.card-toggle-btn {
+  flex-shrink: 0; margin-left: 8px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); padding: 4px; line-height: 0;
+  border-radius: 4px; transition: background .12s, color .12s;
+}
+.card-toggle-btn:hover { background: var(--surface2); color: var(--text); }
+.card-toggle-btn svg { display: block; transition: transform .2s ease; }
+.card-toggle-btn.is-collapsed svg { transform: rotate(-90deg); }
+.card-toggle-btn.is-collapsed { color: var(--accent); }
+.card-body-wrap { }
+.card-body-wrap.is-collapsed { display: none; }
+
+/* ── Stats row ────────────────────────────────────────────────────────────── */
+.stat-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+        padding: 16px 24px; min-width: 170px; flex: 1; }
+.stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase;
+              letter-spacing: .8px; margin-bottom: 6px; }
+.stat-value { font-size: 26px; font-weight: 700; color: var(--accent); }
+.stat-value.green { color: var(--success); }
+.stat-value.red   { color: var(--danger); }
+.stat-value.warn  { color: var(--warn); }
+
+/* ── Form controls ────────────────────────────────────────────────────────── */
+.form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+            align-items: flex-end; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+select, input[type=text], input[type=password], input[type=number], input[type=date] {
+  appearance: none; -webkit-appearance: none;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 7px 10px; font-size: 13px; min-width: 130px;
+  color-scheme: dark;
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237d8590' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+select:focus, input:focus { outline: none; border-color: var(--accent); }
+input[type=number] { min-width: 110px; }
+
+/* ── File drop zone ───────────────────────────────────────────────────────── */
+#drop-zone {
+  border: 2px dashed var(--border); border-radius: 8px; padding: 32px;
+  text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+  margin-bottom: 16px;
+}
+#drop-zone:hover, #drop-zone.drag-over { border-color: var(--accent); background: rgba(0,200,255,.05); }
+#drop-zone .dz-icon { font-size: 32px; margin-bottom: 8px; }
+#drop-zone .dz-text { color: var(--text-muted); font-size: 13px; }
+#drop-zone .dz-text span { color: var(--accent); cursor: pointer; }
+#drop-zone.has-file { border-color: var(--success); background: rgba(63,185,80,.05); }
+#file-name { font-size: 12px; color: var(--success); margin-top: 6px; min-height: 18px; }
+#file-input { display: none; }
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer;
+       font-size: 13px; font-weight: 600; transition: background .15s, opacity .15s; }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { background: var(--accent-d); }
+.btn-success { background: var(--success); color: #000; }
+.btn-success:hover { opacity: .85; }
+.btn-danger  { background: var(--danger); color: #fff; }
+.btn-danger:hover { opacity: .85; }
+.btn-warn    { background: var(--warn); color: #000; }
+.btn-warn:hover { opacity: .85; }
+.btn-ghost   { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn:disabled { opacity: .4; cursor: default; }
+
+/* ── Progress / status ────────────────────────────────────────────────────── */
+#load-status {
+  padding: 10px 14px; border-radius: 6px; font-size: 13px;
+  margin-top: 12px; display: none;
+}
+#load-status.info    { background: rgba(0,200,255,.1);  color: var(--accent); }
+#load-status.success { background: rgba(63,185,80,.1);  color: var(--success); }
+#load-status.error   { background: rgba(248,81,73,.1);  color: var(--danger); }
+#nse-status { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-top: 8px; display: none; }
+#nse-status.info    { background: rgba(0,200,255,.1);  color: var(--accent); }
+#nse-status.success { background: rgba(63,185,80,.1);  color: var(--success); }
+#nse-status.error   { background: rgba(248,81,73,.1);  color: var(--danger); }
+.nse-drop-zone {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px dashed var(--border); border-radius: 6px;
+  padding: 10px 14px; cursor: pointer;
+  transition: border-color .2s, background .2s;
+  min-height: 44px;
+}
+.nse-drop-zone:hover, .nse-drop-zone.drag-over { border-color: var(--accent); background: rgba(0,200,255,.05); }
+.nse-drop-zone.has-file { border-color: var(--success); background: rgba(63,185,80,.05); }
+.toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px;
+         font-size: 13px; font-weight: 500; z-index: 200; animation: fadeIn .2s;
+         max-width: 400px; }
+.toast.success { background: rgba(63,185,80,.15); border: 1px solid var(--success); color: var(--success); }
+.toast.error   { background: rgba(248,81,73,.15);  border: 1px solid var(--danger);  color: var(--danger); }
+.toast.info    { background: rgba(0,200,255,.15);  border: 1px solid var(--accent);  color: var(--accent); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor;
+           border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite;
+           margin-right: 6px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Table ────────────────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); font-weight: 600;
+     text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border);
+     white-space: nowrap; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+td { padding: 7px 12px; border-bottom: 1px solid rgba(48,54,61,.5);
+     white-space: nowrap; color: var(--text); }
+tr:hover td { background: rgba(255,255,255,.02); }
+.badge { display: inline-block; padding: 2px 7px; border-radius: 4px;
+         font-size: 11px; font-weight: 600; }
+.badge-eq  { background: rgba(63,185,80,.15);   color: var(--success); }
+.badge-fut { background: rgba(0,200,255,.15);   color: var(--accent); }
+.badge-ce  { background: rgba(210,153,34,.15);  color: var(--warn); }
+.badge-pe  { background: rgba(248,81,73,.15);   color: var(--danger); }
+.badge-def { background: rgba(125,133,144,.15); color: var(--text-muted); }
+.badge-buy  { background: rgba(63,185,80,.15);  color: var(--success); }
+.badge-sell { background: rgba(248,81,73,.15);  color: var(--danger); }
+.badge-open   { background: rgba(0,200,255,.12);  color: var(--accent); }
+.badge-filled { background: rgba(63,185,80,.12);  color: var(--success); }
+.badge-canc   { background: rgba(125,133,144,.12);color: var(--text-muted); }
+.badge-rej    { background: rgba(248,81,73,.12);  color: var(--danger); }
+.badge-active { background: rgba(63,185,80,.12);  color: var(--success); }
+.badge-disabled{ background: rgba(248,81,73,.12); color: var(--danger); }
+.badge-admin  { background: rgba(0,200,255,.12);  color: var(--accent); }
+.badge-trader { background: rgba(210,153,34,.12); color: var(--warn); }
+.empty-row td { color: var(--text-muted); text-align: center; padding: 32px; }
+.pnl-pos { color: var(--success); font-weight: 600; }
+.pnl-neg { color: var(--danger);  font-weight: 600; }
+
+/* ── Splash / Login screen ───────────────────────────────────────────────── */
+#splash {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+#splash-box {
+  width: 360px; padding: 40px 40px 36px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.5);
+}
+#splash-logo {
+  font-size: 26px; font-weight: 700; letter-spacing: .04em; color: var(--accent);
+  margin-bottom: 4px;
+}
+#splash-tagline {
+  font-size: 12px; color: var(--text-muted); margin-bottom: 28px; letter-spacing:.04em;
+}
+#splash-step { transition: opacity .15s; }
+#splash-box .form-group { margin-bottom: 14px; }
+#splash-box label { font-size: 12px; color: var(--text-muted); display:block; margin-bottom:5px; }
+#splash-box input { width: 100%; }
+#splash-box .btn { width: 100%; padding: 10px; margin-top: 6px; font-size: 14px; }
+#splash-status {
+  font-size: 12px; min-height: 18px; margin-bottom: 10px; text-align: center;
+}
+#splash-status.error  { color: var(--danger); }
+#splash-status.info   { color: var(--text-muted); }
+#splash-status.ok     { color: var(--success, #3fb950); }
+
+
+/* ── Modal overlay ────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(13,17,23,.8);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.hidden { display: none; }
+.modal-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 28px 32px; width: 440px; max-height: 85vh; overflow-y: auto;
+}
+.modal-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+.modal-box .form-group { margin-bottom: 14px; width: 100%; }
+.modal-box .form-group label { display: block; margin-bottom: 5px; }
+.modal-box input, .modal-box select { width: 100%; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.modal-error { color: var(--danger); font-size: 12px; min-height: 16px; margin-bottom: 8px; }
+
+/* ── Search bar ───────────────────────────────────────────────────────────── */
+.search-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-end; }
+.search-row input { flex: 1; }
+</style>
+  <script>
+// Falcon Admin — dashboard page
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['dashboard'] = {
+    html: `
+    <div id="page-dashboard" class="page active">
+      <h2>Dashboard</h2>
+      <p class="page-sub">System overview at a glance.</p>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-label">Total Instruments</div>
+          <div class="stat-value" id="dash-inst-count">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Total Traders</div>
+          <div class="stat-value" id="dash-trader-count">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Max Global Loss</div>
+          <div class="stat-value warn" id="dash-max-loss">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Max Exposure</div>
+          <div class="stat-value" id="dash-max-exp">—</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Global Risk Snapshot</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Limit</th><th>Value</th></tr></thead>
+            <tbody id="dash-risk-tbody">
+              <tr class="empty-row"><td colspan="2">Login to load data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Audit Events</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Trader</th><th>Module</th><th>Action</th><th>Description</th></tr></thead>
+            <tbody id="dash-audit-tbody">
+              <tr class="empty-row"><td colspan="5">Login to load data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+`,
+    init: null
+  };
+})();
+
+</script>
+  <script>
+// Falcon Admin — instruments page
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['instruments'] = {
+    html: `
+    <div id="page-instruments" class="page active">
+      <h2>Securities / Instruments</h2>
+      <p class="page-sub">Load contract master files into the database. Each file corresponds to one exchange segment.</p>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-label">Total Instruments</div>
+          <div class="stat-value" id="inst-count">—</div>
+        </div>
+      </div>
+      <!-- Unified Instrument Loader -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Load Exchange Contract Files</div>
+          <button class="btn btn-danger btn-sm" id="btn-delete" disabled>Delete Segment</button>
+        </div>
+        <div class="form-row" style="margin-bottom:16px;">
+          <div class="form-group">
+            <label>Exchange</label>
+            <select id="sel-exchange" onchange="onExchangeChange()">
+              <option value="1">NSE</option>
+              <option value="2">BSE</option>
+              <option value="3">MCX</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Segment</label>
+            <select id="sel-segment">
+              <option value="1">CM &mdash; Cash / Equity</option>
+              <option value="2" selected>FO &mdash; Futures &amp; Options</option>
+              <option value="3">CD &mdash; Currency Derivatives</option>
+              <option value="4">COM &mdash; Commodity</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- NSE MTBT pickers (visible when exchange = NSE) -->
+        <div id="nse-section">
+          <div class="form-row" style="align-items:flex-start;margin-bottom:16px;">
+            <div class="form-group" style="flex:1;">
+              <label>contract.txt <span style="color:var(--danger)">*</span></label>
+              <div id="nse-drop-contract" class="nse-drop-zone">
+                <span style="font-size:20px;">&#128196;</span>
+                <span id="nse-contract-name" style="color:var(--text-muted);font-size:12px;">Drop file or click to browse</span>
+              </div>
+              <input type="file" id="nse-file-contract" accept=".txt" style="display:none">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label>fo_contract_stream_info.csv <span style="color:var(--accent);font-size:11px;">(needed for StreamID)</span></label>
+              <div id="nse-drop-stream" class="nse-drop-zone">
+                <span style="font-size:20px;">&#128196;</span>
+                <span id="nse-stream-name" style="color:var(--text-muted);font-size:12px;">Drop file or click to browse</span>
+              </div>
+              <input type="file" id="nse-file-stream" accept=".csv" style="display:none">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+            <button class="btn btn-primary" id="btn-nse-load" disabled>Parse &amp; Load NSE Files</button>
+            <button class="btn btn-ghost" id="btn-nse-clear" style="display:none">Clear</button>
+            <span id="nse-record-count" style="color:var(--text-muted);font-size:12px;margin-left:4px;"></span>
+          </div>
+          <div id="nse-progress-wrap" style="display:none;margin-bottom:6px;">
+            <div style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;">
+              <div id="nse-progress-bar" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s;"></div>
+            </div>
+            <div id="nse-progress-label" style="color:var(--text-muted);font-size:11px;margin-top:4px;"></div>
+          </div>
+          <div id="nse-status"></div>
+        </div>
+
+        <!-- Generic CSV section (visible when exchange = BSE / MCX / other) -->
+        <div id="generic-section" style="display:none;">
+          <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
+            A native parser for this exchange is not yet available. Upload a pre-formatted CSV instead.
+          </p>
+          <div id="drop-zone">
+            <div class="dz-icon">&#128196;</div>
+            <div class="dz-text">Drop CSV file here or <span onclick="document.getElementById('file-input').click()">browse</span></div>
+            <div id="file-name"></div>
+          </div>
+          <input type="file" id="file-input" accept=".csv,.txt">
+          <details style="margin-bottom:16px;color:var(--text-muted);font-size:12px;">
+            <summary style="cursor:pointer;user-select:none;">Expected CSV format</summary>
+            <div style="margin-top:8px;background:var(--surface2);border-radius:6px;padding:10px;font-family:monospace;font-size:11px;overflow-x:auto;white-space:pre;">token,symbol,series,instrumentType,expiry,strike,optionType,lotSize,tickSize,underlyingToken,pricePrecision,qtyPrecision,freezeQty,streamId
+35001,NIFTY,EQ,EQ,,0.0,,1,0.05,0,2,1,500,0
+35002,BANKNIFTY,EQ,EQ,,0.0,,1,0.05,0,2,1,100,0</div>
+          </details>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn btn-primary" id="btn-load" disabled>Load Instruments</button>
+            <button class="btn btn-ghost" id="btn-clear-file" style="display:none">Clear file</button>
+          </div>
+          <div id="load-status"></div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 10px;border-bottom:1px solid var(--border);">
+          <div class="card-title" style="margin:0;">Browse Instruments</div>
+          <input type="text" id="sym-filter" placeholder="Search symbols..." style="height:30px;padding:0 10px;font-size:13px;width:200px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);">
+        </div>
+        <div style="display:grid;grid-template-columns:200px 220px 160px 1fr;height:520px;">
+
+          <!-- Panel 1: Streams -->
+          <div style="border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;">
+            <div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.06em;border-bottom:1px solid var(--border);flex-shrink:0;">STREAMS</div>
+            <div id="stream-list" style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;">
+              <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;"><span class="spinner"></span></div>
+            </div>
+          </div>
+
+          <!-- Panel 2: Symbols -->
+          <div style="border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;">
+            <div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.06em;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;flex-shrink:0;">
+              <span>SYMBOLS</span><span id="sym-count" style="color:var(--accent);">—</span>
+            </div>
+            <div id="sym-list" style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;">
+              <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Select a stream</div>
+            </div>
+          </div>
+
+          <!-- Panel 3: Expiries -->
+          <div style="border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;">
+            <div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.06em;border-bottom:1px solid var(--border);flex-shrink:0;">EXPIRIES</div>
+            <div id="exp-list" style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;">
+              <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Select a symbol</div>
+            </div>
+          </div>
+
+          <!-- Panel 4: Option Chain -->
+          <div style="display:flex;flex-direction:column;min-height:0;">
+            <div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.06em;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+              <span id="chain-title">OPTION CHAIN</span>
+              <span id="chain-fut" style="font-size:12px;color:var(--accent);font-weight:400;"></span>
+            </div>
+            <div style="flex:1;min-height:0;overflow:auto;">
+              <table id="chain-table" style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead id="chain-head" style="position:sticky;top:0;background:var(--surface2);z-index:1;">
+                  <tr>
+                    <th colspan="4" style="padding:20px;text-align:center;color:var(--text-muted);font-weight:400;">Select a symbol and expiry</th>
+                  </tr>
+                </thead>
+                <tbody id="chain-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+`,
+    init: function () {
+    onExchangeChange();
+    $('sel-exchange').onchange = onExchangeChange;
+
+    // ── CSV drop zone (generic section) ─────────────────────────────────────
+    var dropZone  = $('drop-zone');
+    var fileInput = $('file-input');
+    function loadFile(file) {
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        state.csvText = e.target.result;
+        $('file-name').textContent = file.name + ' (' + file.size.toLocaleString() + ' bytes)';
+        dropZone.classList.add('has-file');
+        $('btn-load').disabled = !state.loggedIn;
+        $('btn-clear-file').style.display = '';
+        hideStatus();
+      };
+      reader.readAsText(file);
+    }
+    dropZone.ondragover  = function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); };
+    dropZone.ondragleave = function()  { dropZone.classList.remove('drag-over'); };
+    dropZone.ondrop      = function(e) { e.preventDefault(); dropZone.classList.remove('drag-over'); loadFile(e.dataTransfer.files[0]); };
+    dropZone.onclick     = function(e) { if (e.target.tagName !== 'SPAN') fileInput.click(); };
+    fileInput.onchange   = function()  { loadFile(fileInput.files[0]); };
+
+    $('btn-clear-file').onclick = function() {
+      state.csvText = null;
+      $('file-name').textContent = ''; dropZone.classList.remove('has-file');
+      $('btn-load').disabled = true; $('btn-clear-file').style.display = 'none';
+      fileInput.value = ''; hideStatus();
+    };
+    $('btn-load').onclick = async function() {
+      if (!state.csvText) return;
+      $('btn-load').disabled = true;
+      showStatus('<span class="spinner"></span>Uploading and parsing CSV...', 'info');
+      try {
+        var data = await sendCommand(CMD.LOAD_INSTRUMENTS, {
+          exchangeId: parseInt($('sel-exchange').value),
+          segmentId:  parseInt($('sel-segment').value),
+          csv: state.csvText,
+        });
+        var result = typeof data === 'string' ? JSON.parse(data) : data;
+        showStatus('&#10003; Loaded <strong>' + result.loaded + '</strong> of <strong>' +
+          result.submitted + '</strong> instruments successfully.', 'success');
+        await refreshCount();
+        loadSymbols();
+      } catch(e) {
+        showStatus('&#10007; Error: ' + e.message, 'error');
+      } finally { $('btn-load').disabled = false; }
+    };
+    $('btn-delete').onclick = async function() {
+      var selExch = $('sel-exchange'), selSeg = $('sel-segment');
+      var segLabel = selExch.options[selExch.selectedIndex].text + ' / ' +
+                     selSeg.options[selSeg.selectedIndex].text;
+      if (!confirm('Delete ALL instruments for ' + segLabel + '?\nThis cannot be undone.')) return;
+      $('btn-delete').disabled = true;
+      showStatus('<span class="spinner"></span>Deleting...', 'info');
+      try {
+        await sendCommand(CMD.DELETE_INSTRUMENTS, { exchangeId: parseInt($('sel-exchange').value) });
+        showStatus('&#10003; Instruments deleted.', 'success');
+        await refreshCount();
+        loadSymbols();
+      } catch(e) {
+        showStatus('&#10007; Error: ' + e.message, 'error');
+      } finally { $('btn-delete').disabled = false; }
+    };
+    $('sym-filter').oninput = function() { renderSymbolList(browseState.symbols); };
+
+    // ── NSE file pickers ─────────────────────────────────────────────────────
+    nseSetupDrop('nse-drop-contract', 'nse-file-contract', 'contractText', 'nse-contract-name');
+    nseSetupDrop('nse-drop-stream',   'nse-file-stream',   'streamText',   'nse-stream-name');
+    $('btn-nse-clear').onclick = function () {
+      nseState.contractText = null; nseState.streamText = null;
+      ['nse-drop-contract','nse-drop-stream'].forEach(function(id){ $(id).classList.remove('has-file'); });
+      $('nse-contract-name').textContent = 'Drop file or click to browse';
+      $('nse-contract-name').style.color = '';
+      $('nse-stream-name').textContent   = 'Drop file or click to browse';
+      $('nse-stream-name').style.color   = '';
+      $('nse-file-contract').value = ''; $('nse-file-stream').value = '';
+      $('btn-nse-load').disabled = true; $('btn-nse-clear').style.display = 'none';
+      $('nse-status').style.display = 'none'; $('nse-record-count').textContent = '';
+      $('nse-progress-wrap').style.display = 'none';
+    };
+    $('btn-nse-load').onclick = async function () {
+      if (!nseState.contractText) { return; }
+      $('btn-nse-load').disabled = true;
+      $('nse-progress-wrap').style.display = '';
+      $('nse-progress-bar').style.width = '0%';
+      $('nse-progress-label').textContent = 'Parsing contract.txt...';
+      showNseStatus('<span class="spinner"></span> Parsing NSE contract files...', 'info');
+      try {
+        var parsed = parseNseContractTxt(nseState.contractText);
+        var records = parsed.records, skipped = parsed.skipped;
+        $('nse-record-count').textContent = records.length.toLocaleString() + ' records parsed';
+        $('nse-progress-bar').style.width = '10%';
+        if (records.length === 0) { showNseStatus('Error: No valid records found.', 'error'); return; }
+        var streamsMapped = 0;
+        if (nseState.streamText) {
+          $('nse-progress-label').textContent = 'Joining stream info...';
+          var streamMap = parseNseStreamCsv(nseState.streamText);
+          for (var ri = 0; ri < records.length; ri++) {
+            if (streamMap[records[ri].token] !== undefined) {
+              records[ri].streamId = streamMap[records[ri].token]; streamsMapped++;
+            }
+          }
+          $('nse-progress-label').textContent = 'StreamID mapped for ' + streamsMapped.toLocaleString() + ' tokens.';
+        }
+        $('nse-progress-bar').style.width = '20%';
+        var kBatch = 5000;
+        var exchId = parseInt($('sel-exchange').value);
+        var segId  = parseInt($('sel-segment').value);
+        var numBatches = Math.ceil(records.length / kBatch);
+        var totalLoaded = 0, totalSubmitted = 0;
+        for (var b = 0; b < numBatches; b++) {
+          var batch = records.slice(b * kBatch, (b + 1) * kBatch);
+          var csv   = nseRecordsToCsv(batch);
+          var pct   = 20 + Math.round(78 * (b + 1) / numBatches);
+          $('nse-progress-label').textContent = 'Uploading batch ' + (b+1) + ' / ' + numBatches + '...';
+          showNseStatus('<span class="spinner"></span> Uploading batch ' + (b+1) + ' of ' + numBatches + '...', 'info');
+          var data   = await sendCommand(CMD.LOAD_INSTRUMENTS, { exchangeId: exchId, segmentId: segId, csv: csv });
+          var result = typeof data === 'string' ? JSON.parse(data) : data;
+          totalLoaded    += result.loaded; totalSubmitted += result.submitted;
+          $('nse-progress-bar').style.width = pct + '%';
+        }
+        $('nse-progress-bar').style.width = '100%';
+        $('nse-progress-label').textContent = 'Done.';
+        showNseStatus('Loaded <strong>' + totalLoaded + '</strong> of <strong>' + totalSubmitted +
+          '</strong> instruments' + (nseState.streamText ? ' with StreamID' : ' (StreamID=0)') +
+          (skipped ? '; ' + skipped + ' rows skipped' : '') + '.', 'success');
+        await refreshCount();
+        loadSymbols();
+      } catch(e) {
+        $('nse-progress-bar').style.width = '0%';
+        showNseStatus('Error: ' + e.message, 'error');
+      } finally { $('btn-nse-load').disabled = !state.loggedIn; }
+    };
+  }
+  };
+})();
+
+</script>
+  <script>
+// Falcon Admin — traders page
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['traders'] = {
+    html: `
+    <div id="page-traders" class="page active">
+      <h2>Traders</h2>
+      <p class="page-sub">Manage user accounts, roles, and credentials.</p>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Traders</div>
+          <button class="btn btn-primary btn-sm" id="btn-add-trader" onclick="openAddTrader()">+ Add Trader</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Login Name</th><th>Name</th><th>Email</th><th>Mobile</th>
+                  <th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="traders-tbody">
+              <tr class="empty-row"><td colspan="9">Login to load data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+`,
+    init: null
+  };
+})();
+
+</script>
+  <script>
+// Falcon Admin — orders page
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['orders'] = {
+    html: `
+    <div id="page-orders" class="page active">
+      <h2>Orders</h2>
+      <p class="page-sub">Read-only view of all orders. Filter by account to narrow results.</p>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Account ID (0 = all)</label>
+            <input type="number" id="ord-account-id" value="0" min="0">
+          </div>
+          <div style="display:flex; gap:8px; align-items:flex-end;">
+            <button class="btn btn-primary" id="btn-fetch-orders" onclick="fetchOrders()">Fetch Orders</button>
+            <button class="btn btn-ghost" id="btn-export-orders" onclick="exportOrders()">Export CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Order ID</th><th>Account</th><th>Token</th><th>Side</th><th>Type</th>
+                  <th>Price</th><th>Qty</th><th>Filled Qty</th><th>Status</th></tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <tr class="empty-row"><td colspan="9">Click Fetch Orders to load data</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="orders-count" style="margin-top:10px; font-size:12px; color:var(--text-muted);"></div>
+      </div>
+    </div>
+`,
+    init: null
+  };
+})();
+
+</script>
+  <script>
+// Falcon Admin — positions page
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['positions'] = {
+    html: `
+    <div id="page-positions" class="page active">
+      <h2>Positions</h2>
+      <p class="page-sub">Current open positions across all accounts.</p>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-label">Open Positions</div>
+          <div class="stat-value" id="pos-open-count">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Total MTM</div>
+          <div class="stat-value" id="pos-total-mtm">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Realized PnL</div>
+          <div class="stat-value" id="pos-realized">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Unrealized PnL</div>
+          <div class="stat-value" id="pos-unrealized">—</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Account ID (0 = all)</label>
+            <input type="number" id="pos-account-id" value="0" min="0">
+          </div>
+          <div style="display:flex; gap:8px; align-items:flex-end;">
+            <button class="btn btn-primary" id="btn-fetch-positions" onclick="fetchPositions()">Fetch Positions</button>
+            <button class="btn btn-ghost" id="btn-export-positions" onclick="exportPositions()">Export CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Account</th><th>Token</th><th>Net Qty</th><th>Avg Price</th>
+                  <th>MTM</th><th>Realized PnL</th><th>Unrealized PnL</th></tr>
+            </thead>
+            <tbody id="positions-tbody">
+              <tr class="empty-row"><td colspan="7">Click Fetch Positions to load data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+`,
+    init: null
+  };
+})();
+
+</script>
+  <script>
+// Falcon Admin — risk page
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['risk'] = {
+    html: `
+    <div id="page-risk" class="page active">
+      <h2>Risk Limits</h2>
+      <p class="page-sub">Configure global and per-trader risk parameters.</p>
+
+      <div class="card">
+        <div class="card-title">Global Risk</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Max Loss (INR)</label>
+            <input type="number" id="risk-max-loss" placeholder="e.g. 100000" step="1000">
+          </div>
+          <div class="form-group">
+            <label>Max Open Orders</label>
+            <input type="number" id="risk-max-orders" placeholder="e.g. 100" min="1">
+          </div>
+          <div class="form-group">
+            <label>Max Exposure (INR)</label>
+            <input type="number" id="risk-max-exp" placeholder="e.g. 5000000" step="10000">
+          </div>
+          <div class="form-group">
+            <label>Max Orders/Sec</label>
+            <input type="number" id="risk-max-ops" placeholder="e.g. 10" min="1">
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-ghost" id="btn-load-global-risk" onclick="loadGlobalRisk()">Load</button>
+          <button class="btn btn-primary" id="btn-save-global-risk" onclick="saveGlobalRisk()">Save Global Risk</button>
+        </div>
+        <div id="risk-global-msg" style="margin-top:10px; font-size:12px; min-height:16px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Trader Risk</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Trader ID</label>
+            <input type="number" id="trisk-trader-id" placeholder="e.g. 1" min="1">
+          </div>
+          <div style="align-self:flex-end;">
+            <button class="btn btn-ghost" id="btn-load-trader-risk" onclick="loadTraderRisk()">Load</button>
+          </div>
+        </div>
+        <div class="form-row" id="trader-risk-fields" style="display:none">
+          <div class="form-group">
+            <label>Max Loss (INR)</label>
+            <input type="number" id="trisk-max-loss" step="1000">
+          </div>
+          <div class="form-group">
+            <label>Max Position</label>
+            <input type="number" id="trisk-max-pos" min="1">
+          </div>
+          <div class="form-group">
+            <label>Max Order Qty</label>
+            <input type="number" id="trisk-max-qty" min="1">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-save-trader-risk" onclick="saveTraderRisk()" style="display:none">Save Trader Risk</button>
+        <div id="risk-trader-msg" style="margin-top:10px; font-size:12px; min-height:16px;"></div>
+      </div>
+    </div>
+`,
+    init: null
+  };
+})();
+
+</script>
+  <script>
+// Falcon Admin — audit page
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['audit'] = {
+    html: `
+    <div id="page-audit" class="page active">
+      <h2>Audit Log</h2>
+      <p class="page-sub">System event history for compliance and diagnostics.</p>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Trader ID (0 = all)</label>
+            <input type="number" id="audit-trader-id" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Module filter</label>
+            <input type="text" id="audit-module" placeholder="e.g. Session, Order">
+          </div>
+          <div class="form-group">
+            <label>Limit</label>
+            <select id="audit-limit">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+          </div>
+          <div style="align-self:flex-end;">
+            <button class="btn btn-primary" id="btn-fetch-audit" onclick="fetchAudit()">Fetch</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Trader ID</th><th>Module</th><th>Action</th><th>Description</th></tr>
+            </thead>
+            <tbody id="audit-tbody">
+              <tr class="empty-row"><td colspan="5">Click Fetch to load data</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="audit-count" style="margin-top:10px; font-size:12px; color:var(--text-muted);"></div>
+      </div>
+    </div>
+`,
+    init: null
+  };
+})();
+
+</script>
+  <script>
+// Falcon Admin — settings page
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['settings'] = {
+    html: `
+    <div id="page-settings" class="page active">
+      <h2>Settings</h2>
+      <p class="page-sub">Application configuration key-value store.</p>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Settings</div>
+          <button class="btn btn-ghost btn-sm" id="btn-refresh-settings" onclick="loadSettings()">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Key</th><th>Value</th><th>Action</th></tr>
+            </thead>
+            <tbody id="settings-tbody">
+              <tr class="empty-row"><td colspan="3">Login to load data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+`,
+    init: null
+  };
+})();
+
+</script>
+  <script>
+// Falcon Admin -- Strategies page
+// Manages strategy templates (catalog) and instances.
+(function () {
+  'use strict';
+  window.FP = window.FP || {};
+  window.FP['strategies'] = window.FP['strategies'] || { html: '', init: null };
+
+  // ── Strategy admin command types ──────────────────────────────────────────
+  var SC = {
+    CREATE_STRATEGY    : 48,
+    UPDATE_STRATEGY    : 49,
+    GET_ALL_STRATEGIES : 50,
+    GET_ALL_INSTANCES  : 51,
+    CREATE_INSTANCE    : 52,
+    DELETE_INSTANCE    : 54,
+    ENABLE_INSTANCE    : 55,
+    SET_PARAMETER      : 56,
+    GET_PARAMETERS     : 57,
+    ADD_INSTRUMENT     : 58,
+    KILL_ALL           : 60,
+    GET_INSTRUMENTS           : 61,
+    GET_DEFAULT_PARAMETERS    : 62,
+    SET_DEFAULT_PARAMETER     : 63,
+    DELETE_DEFAULT_PARAMETERS : 64
+  };
+
+  // ── Page state ────────────────────────────────────────────────────────────
+  var ss = {
+    catalog      : [],
+    instances    : [],
+    stratMap     : {},
+    selectedId   : 0,
+    editedParams : {},
+    newLegs      : [],
+    newParams    : [],
+    editingStrat : null,
+    tmplParams   : []
+  };
+
+  // ── DOM helper ────────────────────────────────────────────────────────────
+  function ge(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function statusStyle(status) {
+    var u = (status || '').toUpperCase();
+    if (u === 'ACTIVE')  { return 'background:#d1fae5;color:#065f46'; }
+    if (u === 'CREATED') { return 'background:#dbeafe;color:#1e3a8a'; }
+    if (u === 'REMOVED') { return 'background:#fee2e2;color:#991b1b'; }
+    return 'background:var(--surface2);color:var(--text-muted)';
+  }
+
+  function stratName(id) { return ss.stratMap[id] || ('ID:' + id); }
+
+  var INP = 'padding:7px 8px;border:1px solid var(--border);border-radius:6px;'
+          + 'background:var(--surface2);color:var(--text);font-size:12px;';
+
+  // ── Build HTML strings (avoid long literals by concatenation) ────────────
+  function buildPageHtml() {
+    var TH = 'padding:8px 12px;text-align:left;font-size:11px;color:var(--text-muted);'
+           + 'font-weight:600;border-bottom:1px solid var(--border)';
+    return '<div id="page-strategies" class="page active">'
+      + '<h2>Strategies</h2>'
+      + '<p class="page-sub">Manage strategy templates and all trader instances.</p>'
+
+      // Templates card
+      + '<div class="card">'
+      +   '<div class="card-header">'
+      +     '<div class="card-title">Strategy Templates</div>'
+      +     '<div style="display:flex;gap:8px">'
+      +       '<button class="btn btn-ghost btn-sm" id="btn-refresh-catalog">Refresh</button>'
+      +       '<button class="btn btn-sm" id="btn-new-template" style="background:var(--accent);'
+      +         'color:#fff;border:none;padding:5px 14px;border-radius:6px;cursor:pointer;'
+      +         'font-size:12px;font-weight:600">+ New Template</button>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="table-wrap"><table>'
+      +     '<thead><tr>'
+      +       '<th>ID</th><th>Name</th><th>DLL</th><th>Description</th>'
+      +       '<th>Ver</th><th>Status</th><th></th>'
+      +     '</tr></thead>'
+      +     '<tbody id="catalog-tbody">'
+      +       '<tr class="empty-row"><td colspan="7">Login to load</td></tr>'
+      +     '</tbody>'
+      +   '</table></div>'
+      + '</div>'
+
+      // Instances card
+      + '<div class="card" style="overflow:hidden">'
+      +   '<div class="card-header">'
+      +     '<div class="card-title">All Instances</div>'
+      +     '<div style="display:flex;gap:8px">'
+      +       '<button class="btn btn-ghost btn-sm" id="btn-refresh-instances">Refresh</button>'
+      +       '<button class="btn btn-sm" id="btn-new-instance" style="background:var(--accent);'
+      +         'color:#fff;border:none;padding:5px 14px;border-radius:6px;cursor:pointer;'
+      +         'font-size:12px;font-weight:600">+ New Instance</button>'
+      +       '<button class="btn btn-sm" id="btn-kill-all" style="background:var(--danger);'
+      +         'color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;'
+      +         'font-size:12px;font-weight:600">&#9888; Kill All</button>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div style="display:flex;gap:0;min-height:240px">'
+
+        // Instance list
+        +   '<div style="flex:1;min-width:0;overflow:auto">'
+        +     '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+        +       '<thead><tr style="background:var(--surface2)">'
+        +         '<th style="' + TH + '">ID</th>'
+        +         '<th style="' + TH + '">Name</th>'
+        +         '<th style="' + TH + '">Template</th>'
+        +         '<th style="' + TH + '">Trader</th>'
+        +         '<th style="' + TH + '">Status</th>'
+        +         '<th style="' + TH + '">Created</th>'
+        +         '<th style="padding:8px 12px;border-bottom:1px solid var(--border)"></th>'
+        +       '</tr></thead>'
+        +       '<tbody id="instances-tbody">'
+        +         '<tr><td colspan="7" style="padding:20px;text-align:center;'
+        +           'color:var(--text-muted)">Login to load</td></tr>'
+        +       '</tbody>'
+        +     '</table>'
+        +   '</div>'
+
+        // Detail panel
+        +   '<div id="instance-detail-panel" style="display:none;width:320px;flex-shrink:0;'
+        +     'border-left:1px solid var(--border);padding:16px;overflow-y:auto;'
+        +     'background:var(--surface2)">'
+        +     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+        +       '<span style="font-weight:600;font-size:14px" id="detail-inst-name">&#8212;</span>'
+        +       '<button class="btn btn-ghost btn-sm" id="btn-close-detail"'
+        +         ' style="padding:3px 8px;font-size:11px">&#x2715;</button>'
+        +     '</div>'
+        +     '<div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap">'
+        +       '<span id="detail-status-badge" style="font-size:11px;padding:2px 8px;'
+        +         'border-radius:10px;font-weight:600"></span>'
+        +       '<button class="btn btn-ghost btn-sm" id="btn-enable-instance"'
+        +         ' style="font-size:11px;padding:3px 10px">Enable</button>'
+        +       '<button class="btn btn-ghost btn-sm" id="btn-kill-instance"'
+        +         ' style="font-size:11px;padding:3px 10px">Kill</button>'
+        +       '<button class="btn btn-ghost btn-sm" id="btn-delete-instance"'
+        +         ' style="font-size:11px;padding:3px 10px;color:var(--danger);'
+        +         'border-color:var(--danger)">Delete</button>'
+        +     '</div>'
+        +     '<div style="font-size:10px;font-weight:600;color:var(--text-muted);'
+        +       'text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Legs</div>'
+        +     '<div id="detail-legs-list" style="margin-bottom:16px;font-size:12px;'
+        +       'color:var(--text-muted)">&#8212;</div>'
+        +     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +       '<div style="font-size:10px;font-weight:600;color:var(--text-muted);'
+        +         'text-transform:uppercase;letter-spacing:.8px">Parameters</div>'
+        +       '<button class="btn btn-ghost btn-sm" id="btn-save-params"'
+        +         ' style="font-size:11px;padding:3px 10px">Save</button>'
+        +     '</div>'
+        +     '<div id="detail-params-list" style="font-size:12px">&#8212;</div>'
+        +   '</div>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function buildTmplModal() {
+    var iS = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);'
+           + 'border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px';
+    function row(id, lbl, ph, xtra) {
+      return '<div style="margin-bottom:12px">'
+        + '<label style="display:block;font-size:12px;font-weight:600;'
+        + 'color:var(--text-muted);margin-bottom:4px">' + lbl + '</label>'
+        + '<input id="' + id + '" type="text" placeholder="' + ph + '"'
+        + ' style="' + (xtra || iS) + '"></div>';
+    }
+    return '<div id="mod-strategy-template" style="display:none;position:fixed;inset:0;'
+      + 'background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center">'
+      + '<div style="background:var(--surface);border:1px solid var(--border);'
+      + 'border-radius:12px;padding:24px;width:460px;max-height:80vh;overflow-y:auto">'
+      + '<h3 id="mod-tmpl-title" style="margin:0 0 20px;font-size:16px;font-weight:700">'
+      + 'New Strategy Template</h3>'
+      + row('tmpl-name',    'Name *',         'e.g. NSE Options Pair', '')
+      + row('tmpl-dll',     'DLL / Plugin *', 'e.g. options_pair.dll', '')
+      + row('tmpl-desc',    'Description',    'Brief description',     '')
+      + row('tmpl-version', 'Version',        '1.0',
+          'width:140px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);'
+          + 'border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;'
+          + 'margin-bottom:20px')
+      + '<div style="margin-bottom:14px">'
+      + '<label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);'
+      + 'margin-bottom:6px">Default Parameters</label>'
+      + '<div style="display:flex;gap:6px;margin-bottom:6px">'
+      +   '<input id="tmpl-param-key" type="text" placeholder="Param name" style="flex:1;' + iS + '">'
+      +   '<input id="tmpl-param-val" type="text" placeholder="Default value" style="flex:1;' + iS + '">'
+      +   '<button onclick="window._strat.addTmplParam()" style="padding:7px 12px;'
+      +     'border:1px solid var(--border);border-radius:6px;background:var(--surface2);'
+      +     'color:var(--text);font-size:12px;cursor:pointer">+ Add</button>'
+      + '</div>'
+      + '<div id="tmpl-params-list" style="font-size:12px;min-height:32px;'
+      + 'border:1px solid var(--border);border-radius:6px;padding:8px;'
+      + 'color:var(--text-muted)">No default parameters</div>'
+      + '</div>'
+      + '<div id="tmpl-err" style="color:var(--danger);font-size:12px;margin-bottom:10px;'
+      + 'display:none"></div>'
+      + '<div style="display:flex;justify-content:flex-end;gap:8px">'
+      + '<button class="btn btn-ghost" onclick="window._strat.closeTmplModal()">Cancel</button>'
+      + '<button class="btn btn-primary" id="btn-save-template"'
+      + ' onclick="window._strat.saveTemplate()">Create</button>'
+      + '</div></div></div>';
+  }
+
+  function buildInstModal() {
+    var gS = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);'
+           + 'border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px';
+    function gRow(id, lbl, tag) {
+      return '<div><label style="display:block;font-size:12px;font-weight:600;'
+        + 'color:var(--text-muted);margin-bottom:4px">' + lbl + '</label>' + tag + '</div>';
+    }
+    function inp(id, type, ph, val) {
+      return '<input id="' + id + '" type="' + type + '" placeholder="' + ph + '"'
+        + (val !== undefined ? ' value="' + val + '"' : '')
+        + ' style="' + gS + '">';
+    }
+    function sel(id, opts) {
+      return '<select id="' + id + '" style="' + gS + '">' + opts + '</select>';
+    }
+    return '<div id="mod-new-instance" style="display:none;position:fixed;inset:0;'
+      + 'background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center">'
+      + '<div style="background:var(--surface);border:1px solid var(--border);'
+      + 'border-radius:12px;padding:24px;width:560px;max-height:88vh;overflow-y:auto">'
+      + '<h3 style="margin:0 0 20px;font-size:16px;font-weight:700">New Strategy Instance</h3>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'
+      +   gRow('ni-strategy', 'Template *',
+            sel('ni-strategy', '<option value="">-- Select --</option>'))
+      +   gRow('ni-name',     'Instance Name *', inp('ni-name',   'text',   'e.g. NIFTY Pairs 1', undefined))
+      +   gRow('ni-trader',   'Trader ID *',     inp('ni-trader', 'number', '1',                  undefined))
+      +   gRow('ni-account',  'Account ID',      inp('ni-account','number', '0',                  '0'))
+      + '</div>'
+      // Legs
+      + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);'
+      + 'text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Legs</div>'
+      + '<div style="display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap;align-items:center">'
+      +   '<input id="ni-leg-token" type="number" placeholder="Token" style="width:80px;' + INP + '">'
+      +   '<div style="position:relative;flex:1;min-width:80px">'
+      +     '<input id="ni-leg-label" type="text" placeholder="Symbol (type to search)" '
+      +     'oninput="window._strat.onLegSymbol(this.value)" '
+      +     'style="width:100%;box-sizing:border-box;' + INP + '">'
+      +     '<div id="ni-leg-sym-drop" style="display:none;position:absolute;top:100%;left:0;'
+      +     'right:auto;min-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:6px;'
+      +     'z-index:100;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.25)"></div>'
+      +   '</div>'
+      +   '<select id="ni-leg-role" style="width:82px;' + INP + '">'
+      +     '<option>LEG1</option><option>LEG2</option><option>LEG3</option>'
+      +     '<option>LEG4</option><option>HEDGE</option>'
+      +   '</select>'
+      +   '<span style="font-size:11px;color:var(--text-muted);white-space:nowrap">Qty Ratio</span>'
+      +   '<input id="ni-leg-weight" type="number" value="1" min="0.01" step="0.01" style="width:58px;' + INP + '">'
+      +   '<button onclick="window._strat.addLeg()" style="padding:7px 12px;'
+      +     'border:1px solid var(--border);border-radius:6px;background:var(--surface2);'
+      +     'color:var(--text);font-size:12px;cursor:pointer">+ Add</button>'
+      + '</div>'
+      + '<div id="ni-legs-list" style="font-size:12px;min-height:36px;border:1px solid var(--border);'
+      + 'border-radius:6px;padding:8px;margin-bottom:16px;color:var(--text-muted)">No legs added</div>'
+      // Params
+      + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);'
+      + 'text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Parameters</div>'
+      + '<div style="display:flex;gap:6px;margin-bottom:8px">'
+      +   '<input id="ni-param-key"   type="text" placeholder="Parameter name" style="flex:1;' + INP + '">'
+      +   '<input id="ni-param-value" type="text" placeholder="Value"          style="flex:1;' + INP + '">'
+      +   '<button onclick="window._strat.addParam()" style="padding:7px 12px;'
+      +     'border:1px solid var(--border);border-radius:6px;background:var(--surface2);'
+      +     'color:var(--text);font-size:12px;cursor:pointer">+ Add</button>'
+      + '</div>'
+      + '<div id="ni-params-list" style="font-size:12px;min-height:36px;'
+      + 'border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:16px;'
+      + 'color:var(--text-muted)">No parameters added</div>'
+      + '<div id="ni-err" style="color:var(--danger);font-size:12px;margin-bottom:10px;'
+      + 'display:none"></div>'
+      + '<div style="display:flex;justify-content:flex-end;gap:8px">'
+      + '<button class="btn btn-ghost" onclick="window._strat.closeInstModal()">Cancel</button>'
+      + '<button class="btn btn-primary"'
+      + ' onclick="window._strat.createInstance()">Create Instance</button>'
+      + '</div></div></div>';
+  }
+
+  // ── Inject modals into body once ──────────────────────────────────────────
+  function injectModals() {
+    if (!ge('mod-strategy-template')) {
+      var d1 = document.createElement('div');
+      d1.innerHTML = buildTmplModal();
+      document.body.appendChild(d1.firstElementChild);
+    }
+    if (!ge('mod-new-instance')) {
+      var d2 = document.createElement('div');
+      d2.innerHTML = buildInstModal();
+      document.body.appendChild(d2.firstElementChild);
+    }
+  }
+
+  // ── Catalog ───────────────────────────────────────────────────────────────
+  async function loadCatalog() {
+    var tbody = ge('catalog-tbody');
+    if (!tbody) { return; }
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;text-align:center;'
+      + 'color:var(--text-muted)">Loading...</td></tr>';
+    try {
+      var raw = await sendCommand(SC.GET_ALL_STRATEGIES, {});
+      ss.catalog  = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      ss.stratMap = {};
+      ss.catalog.forEach(function(s) { ss.stratMap[s.strategyId] = s.name; });
+      renderCatalog();
+    } catch(e) {
+      var tb2 = ge('catalog-tbody');
+      if (tb2) { tb2.innerHTML = '<tr><td colspan="7" style="padding:12px;color:var(--danger)">Error: ' + esc(e.message) + '</td></tr>'; }
+    }
+  }
+
+  function renderCatalog() {
+    var tbody = ge('catalog-tbody');
+    if (!tbody) { return; }
+    if (!ss.catalog.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No templates. Click "+ New Template".</td></tr>';
+      return;
+    }
+    tbody.innerHTML = ss.catalog.map(function(s) {
+      var on = s.enabled
+        ? '<span style="color:#3fb950;font-size:11px;font-weight:600">ENABLED</span>'
+        : '<span style="color:#f85149;font-size:11px;font-weight:600">DISABLED</span>';
+      return '<tr>'
+        + '<td style="padding:7px 12px;color:var(--text-muted)">' + s.strategyId + '</td>'
+        + '<td style="padding:7px 12px;font-weight:600">' + esc(s.name) + '</td>'
+        + '<td style="padding:7px 12px;font-size:11px;color:var(--text-muted)">' + esc(s.dllName || '') + '</td>'
+        + '<td style="padding:7px 12px;font-size:11px">' + esc(s.description || '') + '</td>'
+        + '<td style="padding:7px 12px;font-size:11px">' + esc(s.version || '') + '</td>'
+        + '<td style="padding:7px 12px">' + on + '</td>'
+        + '<td style="padding:7px 12px">'
+        + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 8px"'
+        + ' onclick="window._strat.editTemplate(' + s.strategyId + ')">Edit</button>'
+        + '</td></tr>';
+    }).join('');
+  }
+
+  // ── Instances ─────────────────────────────────────────────────────────────
+  async function loadInstances() {
+    var tbody = ge('instances-tbody');
+    if (!tbody) { return; }
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;text-align:center;'
+      + 'color:var(--text-muted)">Loading...</td></tr>';
+    try {
+      var raw = await sendCommand(SC.GET_ALL_INSTANCES, {});
+      ss.instances = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      renderInstances();
+    } catch(e) {
+      var tb2 = ge('instances-tbody');
+      if (tb2) { tb2.innerHTML = '<tr><td colspan="7" style="padding:12px;color:var(--danger)">Error: ' + esc(e.message) + '</td></tr>'; }
+    }
+  }
+
+  function renderInstances() {
+    var tbody = ge('instances-tbody');
+    if (!tbody) { return; }
+    if (!ss.instances.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;'
+        + 'color:var(--text-muted)">No instances found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = ss.instances.map(function(inst) {
+      var badge = '<span style="font-size:11px;padding:2px 7px;border-radius:8px;font-weight:600;'
+        + statusStyle(inst.status) + '">' + esc(inst.status) + '</span>';
+      var sel = inst.instanceId === ss.selectedId;
+      var bg  = sel ? 'background:rgba(0,200,255,.06);border-left:2px solid var(--accent)'
+                    : 'border-left:2px solid transparent';
+      return '<tr data-id="' + inst.instanceId + '" style="cursor:pointer;' + bg + '"'
+        + ' onclick="window._strat.selectInstance(' + inst.instanceId + ')">'
+        + '<td style="padding:7px 12px;color:var(--text-muted);font-size:12px">' + inst.instanceId + '</td>'
+        + '<td style="padding:7px 12px;font-weight:600">' + esc(inst.name) + '</td>'
+        + '<td style="padding:7px 12px;font-size:12px;color:var(--text-muted)">' + esc(stratName(inst.strategyId)) + '</td>'
+        + '<td style="padding:7px 12px;font-size:12px">' + inst.traderId + '</td>'
+        + '<td style="padding:7px 12px">' + badge + '</td>'
+        + '<td style="padding:7px 12px;font-size:11px;color:var(--text-muted)">' + esc((inst.createdOn || '').slice(0, 10)) + '</td>'
+        + '<td style="padding:7px 12px">'
+        + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 8px"'
+        + ' onclick="event.stopPropagation();window._strat.deleteInstance(' + inst.instanceId + ')">Del</button>'
+        + '</td></tr>';
+    }).join('');
+  }
+
+  // ── Detail panel ──────────────────────────────────────────────────────────
+  async function selectInstance(instanceId) {
+    ss.selectedId   = instanceId;
+    ss.editedParams = {};
+    var inst = null;
+    for (var i = 0; i < ss.instances.length; i++) {
+      if (ss.instances[i].instanceId === instanceId) { inst = ss.instances[i]; break; }
+    }
+    if (!inst) { return; }
+
+    document.querySelectorAll('#instances-tbody tr').forEach(function(r) {
+      var isSel = parseInt(r.dataset.id, 10) === instanceId;
+      r.style.background = isSel ? 'rgba(0,200,255,.06)' : '';
+      r.style.borderLeft = isSel ? '2px solid var(--accent)' : '2px solid transparent';
+    });
+
+    var panel = ge('instance-detail-panel');
+    if (panel) { panel.style.display = ''; }
+
+    var nameEl = ge('detail-inst-name');
+    if (nameEl) { nameEl.textContent = inst.name; }
+
+    var badge = ge('detail-status-badge');
+    if (badge) {
+      badge.textContent = inst.status;
+      badge.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;' + statusStyle(inst.status);
+    }
+
+    await Promise.all([loadLegsDetail(instanceId), loadParamsDetail(instanceId)]);
+  }
+
+  async function loadLegsDetail(instanceId) {
+    var c = ge('detail-legs-list');
+    if (!c) { return; }
+    c.textContent = 'Loading...';
+    try {
+      var raw  = await sendCommand(SC.GET_INSTRUMENTS, { instanceId: instanceId });
+      var legs = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      if (!legs.length) { c.textContent = 'No legs assigned'; return; }
+      c.innerHTML = legs.map(function(l) {
+        return '<div style="display:flex;justify-content:space-between;padding:4px 0;'
+          + 'border-bottom:1px solid var(--border)">'
+          + '<span style="font-weight:600">' + esc(l.role) + '</span>'
+          + '<span style="color:var(--text-muted)">Token:' + l.token + ' W:' + l.weight + '</span>'
+          + '</div>';
+      }).join('');
+    } catch(e) {
+      var c2 = ge('detail-legs-list');
+      if (c2) { c2.textContent = 'Error: ' + e.message; }
+    }
+  }
+
+  async function loadParamsDetail(instanceId) {
+    var c = ge('detail-params-list');
+    if (!c) { return; }
+    c.textContent = 'Loading...';
+    try {
+      var raw    = await sendCommand(SC.GET_PARAMETERS, { instanceId: instanceId });
+      var params = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      ss.editedParams = {};
+      if (!params.length) {
+        c.innerHTML = '<span style="color:var(--text-muted)">No parameters</span>'; return;
+      }
+      c.innerHTML = params.map(function(p) {
+        return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+          + '<span style="flex:1;color:var(--text-muted);font-size:11px">' + esc(p.parameter) + '</span>'
+          + '<input type="text" value="' + esc(p.value) + '" data-key="' + esc(p.parameter) + '"'
+          + ' onchange="window._strat.paramEdited(this.dataset.key,this.value)"'
+          + ' style="width:100px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;'
+          + 'background:var(--surface);color:var(--text);font-size:12px">'
+          + '</div>';
+      }).join('');
+    } catch(e) {
+      var c2 = ge('detail-params-list');
+      if (c2) { c2.textContent = 'Error: ' + e.message; }
+    }
+  }
+
+  async function saveParams() {
+    if (!ss.selectedId) { return; }
+    var keys = Object.keys(ss.editedParams);
+    if (!keys.length) { return; }
+    try {
+      for (var i = 0; i < keys.length; i++) {
+        await sendCommand(SC.SET_PARAMETER, {
+          instanceId: ss.selectedId, parameter: keys[i], value: ss.editedParams[keys[i]]
+        });
+      }
+      ss.editedParams = {};
+    } catch(e) { /* ignore */ }
+  }
+
+  async function enableInstance(instanceId, enable) {
+    try {
+      await sendCommand(SC.ENABLE_INSTANCE, { instanceId: instanceId, enable: enable ? '1' : '0' });
+      loadInstances();
+    } catch(e) { /* ignore */ }
+  }
+
+  async function killInstance(instanceId) {
+    if (!instanceId || !confirm('Mark instance ' + instanceId + ' as REMOVED?')) { return; }
+    enableInstance(instanceId, false);
+  }
+
+  async function deleteInstance(instanceId) {
+    if (!instanceId || !confirm('Delete instance ' + instanceId + '? Cannot be undone.')) { return; }
+    try {
+      await sendCommand(SC.DELETE_INSTANCE, { instanceId: instanceId });
+      ss.selectedId = 0;
+      var panel = ge('instance-detail-panel');
+      if (panel) { panel.style.display = 'none'; }
+      loadInstances();
+    } catch(e) { /* ignore */ }
+  }
+
+  async function killAll() {
+    if (!confirm('Kill ALL active strategy instances? Cannot be undone.')) { return; }
+    try { await sendCommand(SC.KILL_ALL, {}); loadInstances(); } catch(e) { /* ignore */ }
+  }
+
+  // ── Template modal ────────────────────────────────────────────────────────
+  function editTemplate(strategyId) {
+    var s = null;
+    for (var i = 0; i < ss.catalog.length; i++) {
+      if (ss.catalog[i].strategyId === strategyId) { s = ss.catalog[i]; break; }
+    }
+    ss.editingStrat = s;
+    openTmplModal(s);
+  }
+
+  function openTmplModal(s) {
+    var m = ge('mod-strategy-template');
+    if (!m) { return; }
+    var t = ge('mod-tmpl-title'); if (t) { t.textContent = s ? 'Edit Strategy Template' : 'New Strategy Template'; }
+    var n = ge('tmpl-name');    if (n) { n.value = s ? (s.name        || '') : ''; }
+    var d = ge('tmpl-dll');     if (d) { d.value = s ? (s.dllName     || '') : ''; }
+    var x = ge('tmpl-desc');    if (x) { x.value = s ? (s.description || '') : ''; }
+    var v = ge('tmpl-version'); if (v) { v.value = s ? (s.version || '1.0') : '1.0'; }
+    var b = ge('btn-save-template'); if (b) { b.textContent = s ? 'Save Changes' : 'Create'; }
+    var e = ge('tmpl-err'); if (e) { e.style.display = 'none'; e.textContent = ''; }
+    ss.tmplParams = [];
+    renderTmplParams();
+    m.style.display = 'flex';
+    if (s && s.strategyId) { loadTmplParams(s.strategyId); }
+  }
+
+  function closeTmplModal() {
+    var m = ge('mod-strategy-template');
+    if (m) { m.style.display = 'none'; }
+    ss.editingStrat = null;
+  }
+
+  async function saveTemplate() {
+    var name    = (ge('tmpl-name').value    || '').trim();
+    var dll     = (ge('tmpl-dll').value     || '').trim();
+    var desc    = (ge('tmpl-desc').value    || '').trim();
+    var version = (ge('tmpl-version').value || '1.0').trim();
+    var errEl   = ge('tmpl-err');
+    if (!name) { errEl.textContent = 'Name is required';    errEl.style.display = 'block'; return; }
+    if (!dll)  { errEl.textContent = 'DLL name is required'; errEl.style.display = 'block'; return; }
+    errEl.style.display = 'none';
+    try {
+      var sid;
+      if (ss.editingStrat) {
+        await sendCommand(SC.UPDATE_STRATEGY, {
+          strategyId: ss.editingStrat.strategyId, name: name, dllName: dll,
+          description: desc, version: version, enabled: ss.editingStrat.enabled
+        });
+        sid = ss.editingStrat.strategyId;
+      } else {
+        var raw = await sendCommand(SC.CREATE_STRATEGY, { name: name, dllName: dll, description: desc, version: version });
+        var obj = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+        sid = obj.strategyId;
+      }
+      // Sync default parameters
+      var params = ss.tmplParams.slice();
+      if (sid) {
+        try { await sendCommand(SC.DELETE_DEFAULT_PARAMETERS, { strategyId: sid }); } catch(e2) { /* ok if none */ }
+        for (var i = 0; i < params.length; i++) {
+          await sendCommand(SC.SET_DEFAULT_PARAMETER, {
+            strategyId: sid, parameter: params[i].key, defaultValue: params[i].val
+          });
+        }
+      }
+      closeTmplModal();
+      loadCatalog();
+    } catch(e) {
+      errEl.textContent = 'Failed: ' + e.message; errEl.style.display = 'block';
+    }
+  }
+
+  // ── New Instance modal ────────────────────────────────────────────────────
+  function openInstModal() {
+    ss.newLegs   = [];
+    ss.newParams = [];
+    renderNiLegs();
+    renderNiParams();
+    var stratSel = ge('ni-strategy');
+    if (stratSel) {
+      stratSel.innerHTML = '<option value="">-- Select --</option>'
+        + ss.catalog.map(function(s) {
+          return '<option value="' + s.strategyId + '">' + esc(s.name) + '</option>';
+        }).join('');
+      stratSel.onchange = function() {
+        var sid = parseInt(this.value || '0', 10);
+        if (!sid) { ss.newParams = []; renderNiParams(); return; }
+        loadTemplateDefaults(sid);
+      };
+    }
+    var n = ge('ni-name');    if (n) { n.value = ''; }
+    var t = ge('ni-trader');  if (t) { t.value = ''; }
+    var a = ge('ni-account'); if (a) { a.value = '0'; }
+    var e = ge('ni-err');     if (e) { e.style.display = 'none'; }
+    var m = ge('mod-new-instance');
+    if (m) { m.style.display = 'flex'; }
+  }
+
+  function closeInstModal() {
+    var m = ge('mod-new-instance');
+    if (m) { m.style.display = 'none'; }
+  }
+
+  // ── Template default parameters ─────────────────────────────────────────────
+  function addTmplParam() {
+    var key = (ge('tmpl-param-key').value || '').trim();
+    var val = (ge('tmpl-param-val').value || '').trim();
+    if (!key) { alert('Enter a parameter name'); return; }
+    for (var i = 0; i < ss.tmplParams.length; i++) {
+      if (ss.tmplParams[i].key === key) { alert('Parameter already added'); return; }
+    }
+    ss.tmplParams.push({ key: key, val: val });
+    ge('tmpl-param-key').value = '';
+    ge('tmpl-param-val').value = '';
+    renderTmplParams();
+  }
+
+  function removeTmplParam(idx) { ss.tmplParams.splice(idx, 1); renderTmplParams(); }
+
+  function renderTmplParams() {
+    var c = ge('tmpl-params-list');
+    if (!c) { return; }
+    if (!ss.tmplParams.length) { c.textContent = 'No default parameters'; return; }
+    c.innerHTML = ss.tmplParams.map(function(p, i) {
+      return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;'
+        + 'border-bottom:1px solid var(--border)">'
+        + '<span style="flex:1;font-weight:600">' + esc(p.key) + '</span>'
+        + '<span style="flex:1;color:var(--text-muted)">' + esc(p.val) + '</span>'
+        + '<button onclick="window._strat.removeTmplParam(' + i + ')"'
+        + ' style="padding:2px 7px;border:1px solid var(--border);border-radius:4px;'
+        + 'cursor:pointer;font-size:11px;background:none;color:var(--danger)">&#x2715;</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  async function loadTmplParams(strategyId) {
+    try {
+      var raw = await sendCommand(SC.GET_DEFAULT_PARAMETERS, { strategyId: strategyId });
+      var arr = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      ss.tmplParams = arr.map(function(p) { return { key: p.parameter, val: p.defaultValue }; });
+    } catch(e) { ss.tmplParams = []; }
+    renderTmplParams();
+  }
+
+  async function loadTemplateDefaults(strategyId) {
+    try {
+      var raw = await sendCommand(SC.GET_DEFAULT_PARAMETERS, { strategyId: strategyId });
+      var arr = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      ss.newParams = arr.map(function(p) { return { key: p.parameter, value: p.defaultValue }; });
+    } catch(e) { ss.newParams = []; }
+    renderNiParams();
+  }
+
+  // ── Symbol autocomplete for legs ─────────────────────────────────────────
+  var legSymTimer = null;
+  function onLegSymbol(text) {
+    clearTimeout(legSymTimer);
+    var drop = ge('ni-leg-sym-drop');
+    if (!text || text.length < 2) {
+      if (drop) { drop.style.display = 'none'; drop.innerHTML = ''; }
+      return;
+    }
+    legSymTimer = setTimeout(async function() {
+      try {
+        var raw = await sendCommand(23, { symbol: text.toUpperCase() });
+        var arr = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+        if (!drop) { return; }
+        if (!arr || !arr.length) { drop.style.display = 'none'; drop.innerHTML = ''; return; }
+        drop.innerHTML = arr.slice(0, 40).map(function(it) {
+          var label = esc(it.shortName || it.symbol);
+          var sym   = esc(it.symbol);
+          return '<div style="padding:6px 10px;cursor:pointer;font-size:12px;'
+            + 'border-bottom:1px solid var(--border)"'
+            + ' data-token="' + it.token + '" data-sym="' + sym + '"'
+            + ' onclick="window._strat.selectLegSymbol(this)">'
+            + '<b>' + label + '</b>'
+            + ' <span style="color:var(--text-muted);font-size:11px">tok:' + it.token + '</span>'
+            + '</div>';
+        }).join('');
+        drop.style.display = 'block';
+      } catch(e) { /* ignore */ }
+    }, 280);
+  }
+
+  function selectLegSymbol(el) {
+    var token = el.getAttribute('data-token');
+    var label = el.querySelector('b') ? el.querySelector('b').textContent : el.getAttribute('data-sym');
+    var t = ge('ni-leg-token'); if (t) { t.value = token; }
+    var l = ge('ni-leg-label'); if (l) { l.value = label; }
+    var inp = ge('ni-leg-sym'); if (inp) { inp.value = label; }
+    var d = ge('ni-leg-sym-drop'); if (d) { d.style.display = 'none'; }
+  }
+
+  function addLeg() {
+    var token  = parseInt((ge('ni-leg-token').value  || ''), 10);
+    var label  = (ge('ni-leg-label').value  || '').trim();
+    var role   = ge('ni-leg-role').value;
+    var weight = parseFloat(ge('ni-leg-weight').value || '1') || 1;
+    if (!token || isNaN(token)) { alert('Enter a valid token number'); return; }
+    for (var i = 0; i < ss.newLegs.length; i++) {
+      if (ss.newLegs[i].role === role) { alert('Role ' + role + ' already added'); return; }
+    }
+    ss.newLegs.push({ token: token, label: label, role: role, weight: weight });
+    ge('ni-leg-token').value = '';
+    ge('ni-leg-label').value = '';
+    renderNiLegs();
+  }
+
+  function removeLeg(idx) { ss.newLegs.splice(idx, 1); renderNiLegs(); }
+
+  function renderNiLegs() {
+    var c = ge('ni-legs-list');
+    if (!c) { return; }
+    if (!ss.newLegs.length) { c.textContent = 'No legs added'; return; }
+    c.innerHTML = ss.newLegs.map(function(l, i) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;'
+        + 'padding:3px 0;border-bottom:1px solid var(--border)">'
+        + '<span><b>' + esc(l.role) + '</b> ' + esc(l.label || ('tok:' + l.token)) + '</span>'
+        + '<span style="color:var(--text-muted);font-size:11px">tok:' + l.token + ' ratio:' + l.weight + '</span>'
+        + '<button onclick="window._strat.removeLeg(' + i + ')"'
+        + ' style="padding:2px 7px;border:1px solid var(--border);border-radius:4px;'
+        + 'cursor:pointer;font-size:11px;background:none;color:var(--danger)">&#x2715;</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function addParam() {
+    var key   = (ge('ni-param-key').value   || '').trim();
+    var value = (ge('ni-param-value').value || '').trim();
+    if (!key) { alert('Enter a parameter name'); return; }
+    for (var i = 0; i < ss.newParams.length; i++) {
+      if (ss.newParams[i].key === key) { alert('Parameter "' + key + '" already added'); return; }
+    }
+    ss.newParams.push({ key: key, value: value });
+    ge('ni-param-key').value   = '';
+    ge('ni-param-value').value = '';
+    renderNiParams();
+  }
+
+  function removeParam(idx) { ss.newParams.splice(idx, 1); renderNiParams(); }
+
+  function renderNiParams() {
+    var c = ge('ni-params-list');
+    if (!c) { return; }
+    if (!ss.newParams.length) { c.textContent = 'No parameters added'; return; }
+    c.innerHTML = ss.newParams.map(function(p, i) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;'
+        + 'padding:3px 0;border-bottom:1px solid var(--border)">'
+        + '<span style="flex:1">' + esc(p.key) + '</span>'
+        + '<span style="color:var(--text-muted);flex:1">' + esc(p.value) + '</span>'
+        + '<button onclick="window._strat.removeParam(' + i + ')"'
+        + ' style="padding:2px 7px;border:1px solid var(--border);border-radius:4px;'
+        + 'cursor:pointer;font-size:11px;background:none;color:var(--danger)">&#x2715;</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  async function createInstance() {
+    var strategyId = parseInt(ge('ni-strategy').value || '0', 10);
+    var name       = (ge('ni-name').value   || '').trim();
+    var traderId   = parseInt(ge('ni-trader').value  || '0', 10);
+    var accountId  = parseInt(ge('ni-account').value || '0', 10);
+    var errEl      = ge('ni-err');
+    errEl.style.display = 'none';
+    if (!strategyId) { errEl.textContent = 'Select a strategy template'; errEl.style.display = 'block'; return; }
+    if (!name)       { errEl.textContent = 'Enter an instance name';      errEl.style.display = 'block'; return; }
+    if (!traderId)   { errEl.textContent = 'Enter a Trader ID';           errEl.style.display = 'block'; return; }
+    var legs   = ss.newLegs.slice();
+    var params = ss.newParams.slice();
+    try {
+      var raw = await sendCommand(SC.CREATE_INSTANCE, {
+        strategyId: strategyId, traderId: traderId, accountId: accountId, name: name
+      });
+      var instanceId = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw)).instanceId;
+      if (!instanceId) { throw new Error('No instanceId returned'); }
+      for (var i = 0; i < legs.length; i++) {
+        await sendCommand(SC.ADD_INSTRUMENT, {
+          instanceId: instanceId, token: legs[i].token, role: legs[i].role, weight: legs[i].weight
+        });
+      }
+      for (var j = 0; j < params.length; j++) {
+        await sendCommand(SC.SET_PARAMETER, {
+          instanceId: instanceId, parameter: params[j].key, value: params[j].value
+        });
+      }
+      closeInstModal();
+      loadInstances();
+    } catch(e) {
+      errEl.textContent = 'Failed: ' + e.message; errEl.style.display = 'block';
+    }
+  }
+
+  // ── Global bridge (onclick handlers in dynamic HTML reference these) ──────
+  window._strat = {
+    selectInstance  : selectInstance,
+    editTemplate    : editTemplate,
+    closeTmplModal  : closeTmplModal,
+    saveTemplate    : saveTemplate,
+    closeInstModal  : closeInstModal,
+    addLeg          : addLeg,
+    removeLeg       : removeLeg,
+    addParam        : addParam,
+    removeParam     : removeParam,
+    createInstance  : createInstance,
+    deleteInstance  : deleteInstance,
+    paramEdited     : function(key, value) { ss.editedParams[key] = value; },
+    addTmplParam    : addTmplParam,
+    removeTmplParam : removeTmplParam,
+    onLegSymbol     : onLegSymbol,
+    selectLegSymbol : selectLegSymbol
+  };
+
+  // ── Page init (called by showPage()) ─────────────────────────────────────
+  window.FP['strategies'].init = function () {
+    injectModals();
+    loadCatalog();
+    loadInstances();
+
+    var r  = ge('btn-refresh-catalog');   if (r)  { r.onclick  = loadCatalog; }
+    var nt = ge('btn-new-template');      if (nt) { nt.onclick = function() { ss.editingStrat = null; openTmplModal(null); }; }
+    var ri = ge('btn-refresh-instances'); if (ri) { ri.onclick = loadInstances; }
+    var ni = ge('btn-new-instance');      if (ni) { ni.onclick = openInstModal; }
+    var ka = ge('btn-kill-all');          if (ka) { ka.onclick = killAll; }
+
+    var cd = ge('btn-close-detail');
+    if (cd) {
+      cd.onclick = function() {
+        var panel = ge('instance-detail-panel');
+        if (panel) { panel.style.display = 'none'; }
+        ss.selectedId = 0;
+        document.querySelectorAll('#instances-tbody tr').forEach(function(r2) {
+          r2.style.background = ''; r2.style.borderLeft = '2px solid transparent';
+        });
+      };
+    }
+
+    var ki = ge('btn-kill-instance');    if (ki) { ki.onclick = function() { killInstance(ss.selectedId); }; }
+    var en = ge('btn-enable-instance');  if (en) { en.onclick = function() { enableInstance(ss.selectedId, true); }; }
+    var di = ge('btn-delete-instance');  if (di) { di.onclick = function() { deleteInstance(ss.selectedId); }; }
+    var sp = ge('btn-save-params');      if (sp) { sp.onclick = saveParams; }
+  };
+
+  // ── Register page html ────────────────────────────────────────────────────
+  window.FP['strategies'].html = buildPageHtml();
+
+})();
+
+  </script>
+</head>
+<body>
+
+<!-- ── Splash / Login screen ──────────────────────────────────────────────── -->
+<div id="splash" style="position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;">
+  <div id="splash-box">
+    <div id="splash-logo">&#9650; FALCON</div>
+    <div id="splash-tagline">TRADING MANAGEMENT SYSTEM</div>
+
+    <div id="splash-step-connect">
+      <div class="form-group">
+        <label>Server URL</label>
+        <input type="text" id="splash-url" value="ws://localhost:9001" spellcheck="false">
+      </div>
+      <div id="splash-status" class="info"></div>
+      <button class="btn btn-primary" id="splash-btn-connect">Connect</button>
+    </div>
+
+    <div id="splash-step-login" style="display:none">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="inp-user" placeholder="admin" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="inp-pass" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password">
+      </div>
+      <div id="login-error" style="color:var(--danger);font-size:12px;min-height:18px;margin-bottom:8px;"></div>
+      <button class="btn btn-primary" id="btn-login">Login</button>
+      <button class="btn btn-ghost" id="splash-btn-disconnect" style="margin-top:8px;width:100%;font-size:12px;">Back / Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main application (hidden until logged in) ──────────────────────────── -->
+<div id="main-app">
+
+<!-- ── Top bar ──────────────────────────────────────────────────────────── -->
+<div id="topbar">
+  <div class="logo">&#9650; FALCON</div>
+  <div style="flex:1"></div>
+  <span id="topbar-user">Logged in as <span id="topbar-username"></span></span>
+  <button class="btn btn-ghost" id="btn-logout">Logout</button>
+</div>
+
+<div id="layout">
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" data-page="dashboard">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      Dashboard
+    </div>
+
+    <div class="nav-section">Instruments</div>
+    <div class="nav-item" data-page="instruments">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M4 6h16M4 10h16M4 14h8M4 18h8"/>
+      </svg>
+      Securities
+    </div>
+
+    <div class="nav-section">Users</div>
+    <div class="nav-item" data-page="traders">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <circle cx="9" cy="7" r="4"/><path d="M2 21v-1a7 7 0 0 1 14 0v1"/>
+        <path d="M19 8v6M22 11h-6" stroke-width="1.8"/>
+      </svg>
+      Traders
+    </div>
+
+    <div class="nav-section">Trading</div>
+    <div class="nav-item" data-page="orders">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+        <rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>
+      </svg>
+      Orders
+    </div>
+    <div class="nav-item" data-page="positions">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+      </svg>
+      Positions
+    </div>
+
+    <div class="nav-item" data-page="strategies">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+      </svg>
+      Strategies
+    </div>
+
+    <div class="nav-section">System</div>
+    <div class="nav-item" data-page="risk">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      Risk Limits
+    </div>
+    <div class="nav-item" data-page="audit">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+      </svg>
+      Audit Log
+    </div>
+    <div class="nav-item" data-page="settings">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+      Settings
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="content"></div>
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+
+</div><!-- /#main-app -->
+
+<!-- ── Add / Edit Trader Modal ─────────────────────────────────────────────── -->
+<div id="modal-trader" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 id="modal-trader-title">Add Trader</h3>
+    <input type="hidden" id="mt-trader-id">
+    <div class="form-group">
+      <label>Login Name *</label>
+      <input type="text" id="mt-login" placeholder="e.g. john_doe" autocomplete="off">
+    </div>
+    <div class="form-group" id="mt-pass-group">
+      <label>Password *</label>
+      <input type="password" id="mt-password" placeholder="Min 6 characters" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label>First Name</label>
+      <input type="text" id="mt-first" placeholder="First name">
+    </div>
+    <div class="form-group">
+      <label>Last Name</label>
+      <input type="text" id="mt-last" placeholder="Last name">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="text" id="mt-email" placeholder="email@example.com">
+    </div>
+    <div class="form-group">
+      <label>Mobile</label>
+      <input type="text" id="mt-mobile" placeholder="Mobile number">
+    </div>
+    <div class="form-group">
+      <label>Role ID</label>
+      <select id="mt-role">
+        <option value="1">1 — Admin</option>
+        <option value="2" selected>2 — Trader</option>
+      </select>
+    </div>
+    <div class="modal-error" id="mt-error"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-trader')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-trader">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Reset Password Modal ────────────────────────────────────────────────── -->
+<div id="modal-reset-pw" class="modal-overlay hidden">
+  <div class="modal-box" style="width:360px">
+    <h3>Reset Password</h3>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Trader: <strong id="rp-login-name"></strong></p>
+    <input type="hidden" id="rp-trader-id">
+    <div class="form-group">
+      <label>New Password *</label>
+      <input type="password" id="rp-new-pass" placeholder="Min 6 characters" autocomplete="new-password">
+    </div>
+    <div class="modal-error" id="rp-error"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reset-pw')">Cancel</button>
+      <button class="btn btn-warn" id="btn-confirm-reset-pw">Reset Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Setting Modal ──────────────────────────────────────────────────── -->
+<div id="modal-setting" class="modal-overlay hidden">
+  <div class="modal-box" style="width:380px">
+    <h3>Edit Setting</h3>
+    <input type="hidden" id="es-key">
+    <div class="form-group">
+      <label id="es-key-label">Key</label>
+      <input type="text" id="es-value" placeholder="Value">
+    </div>
+    <div class="modal-error" id="es-error"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-setting')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-setting" onclick="saveSetting()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const state = {
+  ws:        null,
+  connected: false,
+  loggedIn:  false,
+  traderId:  0,
+  sessionId: 0,
+  roleId:    0,
+  loginName: '',
+  cmdId:     1,
+  pending:   {},
+  csvText:   null,
+  traders:   [],
+};
+
+// ── Protocol constants ───────────────────────────────────────────────────────
+const CH  = { COMMAND: 0, EVENT: 1 };
+const MSG = { LOGIN: 1, LOGOUT: 2, LOGIN_ACK: 3, LOGIN_NACK: 4 };
+const CMD = {
+  // User
+  CREATE_TRADER:      1,
+  UPDATE_TRADER:      2,
+  DISABLE_TRADER:     3,
+  RESET_PASSWORD:     5,
+  GET_ALL_TRADERS:    6,
+  GET_ALL_ROLES:      9,
+  GET_LOGIN_HISTORY:  13,
+  // Instruments
+  LOAD_INSTRUMENTS:     20,
+  DELETE_INSTRUMENTS:   21,
+  GET_INSTRUMENTS:      22,
+  SEARCH_INSTRUMENTS:   23,
+  GET_INSTRUMENT_COUNT: 24,
+  GET_SYMBOLS:          25,
+  GET_EXPIRIES:         26,
+  GET_STREAM_STATS:     27,
+  GET_SYMBOLS_BY_STREAM:28,
+  GET_EXPIRIES_BY_STREAM:29,
+  // Strategy
+  CREATE_STRATEGY:            48,
+  UPDATE_STRATEGY:            49,
+  GET_ALL_STRATEGIES:         50,
+  GET_ALL_INSTANCES:          51,
+  CREATE_INSTANCE:            52,
+  UPDATE_INSTANCE:            53,
+  DELETE_INSTANCE:            54,
+  ENABLE_INSTANCE:            55,
+  SET_PARAMETER:              56,
+  GET_PARAMETERS:             57,
+  ADD_STRATEGY_INSTRUMENT:    58,
+  REMOVE_STRATEGY_INSTRUMENT: 59,
+  KILL_ALL_STRATEGIES:        60,
+  GET_STRATEGY_INSTRUMENTS:   61,
+  // Risk
+  GET_GLOBAL_RISK:  40,
+  SET_GLOBAL_RISK:  41,
+  GET_TRADER_RISK:  42,
+  SET_TRADER_RISK:  43,
+  // Monitoring
+  GET_ORDERS_BY_TRADER:    81,
+  GET_ALL_POSITIONS:       83,
+  GET_AUDIT_LOG:           85,
+  // Export
+  EXPORT_ORDERS:    91,
+  EXPORT_POSITIONS: 93,
+  // Settings
+  GET_SETTING:      76,
+  SET_SETTING:      77,
+  GET_ALL_SETTINGS: 78,
+};
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function setSplashStatus(msg, type) {
+  const el = $('splash-status');
+  el.textContent = msg;
+  el.className = type || 'info';
+}
+function showSplash(step) {
+  $('main-app').style.display = 'none';
+  $('splash').style.display   = 'flex';
+  if (step === 'login') {
+    $('splash-step-connect').style.display = 'none';
+    $('splash-step-login').style.display   = '';
+    $('login-error').textContent = '';
+    $('btn-login').disabled = false;
+    setTimeout(() => $('inp-user').focus(), 50);
+  } else {
+    $('splash-step-connect').style.display = '';
+    $('splash-step-login').style.display   = 'none';
+    setSplashStatus('', 'info');
+    $('splash-btn-connect').disabled = false;
+  }
+}
+function showMainApp() {
+  $('splash').style.display   = 'none';
+  $('main-app').style.display = 'flex';
+}
+// kept for compatibility with any remaining references
+function setConnState(s) {}
+
+let toastTimer = null;
+function toast(msg, type = 'info') {
+  const el = document.getElementById('__toast__') || document.createElement('div');
+  el.id = '__toast__';
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 3500);
+}
+
+function showStatus(msg, type) {
+  const el = $('load-status');
+  el.style.display = 'block'; el.className = type; el.innerHTML = msg;
+}
+function hideStatus() { $('load-status').style.display = 'none'; }
+
+function openModal(id) { $(id).classList.remove('hidden'); }
+function closeModal(id) { $(id).classList.add('hidden'); }
+
+function pnlClass(v) { return v >= 0 ? 'pnl-pos' : 'pnl-neg'; }
+function fmtN(v)     { return (v === undefined || v === null) ? '—' : Number(v).toLocaleString('en-IN', {maximumFractionDigits: 2}); }
+
+function typeBadge(t) {
+  const map = { EQ:'badge-eq', FUT:'badge-fut', CE:'badge-ce', PE:'badge-pe' };
+  return `<span class="badge ${map[t]||'badge-def'}">${t||'—'}</span>`;
+}
+function sideBadge(s) {
+  return `<span class="badge ${s==='BUY'||s==='B'?'badge-buy':'badge-sell'}">${s||'—'}</span>`;
+}
+function statusBadge(s) {
+  const cls = {FILLED:'badge-filled',OPEN:'badge-open',PENDING:'badge-open',CANCELLED:'badge-canc',REJECTED:'badge-rej'};
+  return `<span class="badge ${cls[s]||'badge-def'}">${s||'—'}</span>`;
+}
+function roleBadge(rid) {
+  return rid === 1 ? '<span class="badge badge-admin">Admin</span>' : '<span class="badge badge-trader">Trader</span>';
+}
+function activeBadge(status) {
+  return status ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-disabled">Disabled</span>';
+}
+
+// ── WebSocket send helpers ───────────────────────────────────────────────────
+function send(ch, data) {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+  state.ws.send(JSON.stringify({ ch, data }));
+}
+
+function sendCommand(type, extra) {
+  return new Promise((resolve, reject) => {
+    const id = state.cmdId++;
+    state.pending[id] = { resolve, reject };
+    setTimeout(() => {
+      if (state.pending[id]) { delete state.pending[id]; reject(new Error('Timeout')); }
+    }, 15000);
+    send(CH.COMMAND, { type, id, ...extra });
+  });
+}
+
+// ── Message handler ──────────────────────────────────────────────────────────
+function onMessage(raw) {
+  let msg;
+  try { msg = JSON.parse(raw); } catch { return; }
+  if (msg.ch === CH.EVENT) {
+    const d = msg.data;
+    if (d.type === MSG.LOGIN_ACK) {
+      state.loggedIn  = true;
+      state.traderId  = d.traderId;
+      state.sessionId = d.sessionId;
+      state.roleId    = d.roleId;
+      $('topbar-username').textContent = state.loginName;
+      showMainApp();
+      onLoggedIn();
+      return;
+    }
+    if (d.type === MSG.LOGIN_NACK) {
+      $('login-error').textContent = d.error || 'Login failed';
+      $('btn-login').disabled = false;
+      $('inp-pass').focus();
+      return;
+    }
+    if (d.commandId !== undefined) {
+      const cb = state.pending[d.commandId];
+      if (cb) {
+        delete state.pending[d.commandId];
+        if (d.success) {
+          cb.resolve(d.data);
+        } else {
+          // Session expiry: server swept the session — force re-login.
+          if (d.error && d.error.startsWith('Session expired')) {
+            Object.values(state.pending).forEach(p => p.reject(new Error('Session expired')));
+            state.pending = {};
+            state.loggedIn = false;
+            toast('Session expired. Please log in again.', 'error');
+            disconnect();
+            return;
+          }
+          cb.reject(new Error(d.error || 'Command failed'));
+        }
+      }
+    }
+  }
+}
+
+// ── After login ──────────────────────────────────────────────────────────────
+function onExchangeChange()
+{
+    const isNse = $('sel-exchange').value === '1';
+    $('nse-section').style.display     = isNse ? '' : 'none';
+    $('generic-section').style.display = isNse ? 'none' : '';
+    // Re-evaluate load button states on exchange switch
+    $('btn-nse-load').disabled = !state.loggedIn || !nseState.contractText;
+    $('btn-load').disabled     = !state.loggedIn || !state.csvText;
+}
+
+async function onLoggedIn()
+{
+  showPage('dashboard');
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const cnt = await sendCommand(CMD.GET_INSTRUMENT_COUNT, {});
+    const c   = typeof cnt === 'string' ? JSON.parse(cnt) : cnt;
+    const countStr = (c.count ?? 0).toLocaleString();
+    $('dash-inst-count').textContent = countStr;
+    if ($('inst-count')) { $('inst-count').textContent = countStr; }
+  } catch { $('dash-inst-count').textContent = '?'; }
+
+  try {
+    const traders = await sendCommand(CMD.GET_ALL_TRADERS, {});
+    const arr = typeof traders === 'string' ? JSON.parse(traders) : traders;
+    state.traders = arr || [];
+    $('dash-trader-count').textContent = state.traders.length;
+  } catch { $('dash-trader-count').textContent = '?'; }
+
+  try {
+    const risk = await sendCommand(CMD.GET_GLOBAL_RISK, {});
+    const r    = typeof risk === 'string' ? JSON.parse(risk) : risk;
+    $('dash-max-loss').textContent = fmtN(r.maxLoss);
+    $('dash-max-exp').textContent  = fmtN(r.maxExposure);
+    $('dash-risk-tbody').innerHTML = `
+      <tr><td>Max Loss</td><td>${fmtN(r.maxLoss)}</td></tr>
+      <tr><td>Max Open Orders</td><td>${fmtN(r.maxOpenOrders)}</td></tr>
+      <tr><td>Max Exposure</td><td>${fmtN(r.maxExposure)}</td></tr>
+      <tr><td>Max Orders / sec</td><td>${fmtN(r.maxOrdersPerSecond)}</td></tr>`;
+    // risk-max-* inputs live on the Risk Limits page; they are populated when that page is navigated to.
+  } catch (e) { $('dash-risk-tbody').innerHTML = `<tr class="empty-row"><td colspan="2">${e.message}</td></tr>`; }
+
+  try {
+    const audit = await sendCommand(CMD.GET_AUDIT_LOG, { limit: 5 });
+    const rows  = typeof audit === 'string' ? JSON.parse(audit) : audit;
+    renderDashAudit(rows || []);
+  } catch { $('dash-audit-tbody').innerHTML = '<tr class="empty-row"><td colspan="5">Failed to load</td></tr>'; }
+}
+
+function renderDashAudit(rows) {
+  if (!rows.length) { $('dash-audit-tbody').innerHTML = '<tr class="empty-row"><td colspan="5">No events</td></tr>'; return; }
+  $('dash-audit-tbody').innerHTML = rows.map(r => `
+    <tr><td>${r.time||'—'}</td><td>${r.traderId}</td><td>${r.module||'—'}</td>
+        <td>${r.action||'—'}</td><td>${r.desc||'—'}</td></tr>`).join('');
+}
+
+// ── Instruments ───────────────────────────────────────────────────────────────
+async function refreshCount() {
+  try {
+    const data   = await sendCommand(CMD.GET_INSTRUMENT_COUNT, {});
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+    const c = (parsed.count ?? '—').toLocaleString();
+    if ($('inst-count'))      { $('inst-count').textContent      = c; }
+    if ($('dash-inst-count')) { $('dash-inst-count').textContent = c; }
+  } catch { if ($('inst-count')) { $('inst-count').textContent = '—'; } }
+}
+
+// ── Browse Instruments: Stream -> Symbols -> Expiries -> Option Chain ───────────
+const browseState = { stream: 0, symbol: '', expiry: '', symbols: [] };
+
+async function loadStreamStats() {
+  const list = $('stream-list');
+  list.innerHTML = '<div style="padding:12px 16px;color:var(--text-muted);font-size:12px;"><span class="spinner"></span> Loading...</div>';
+  try {
+    const data  = await sendCommand(CMD.GET_STREAM_STATS, {});
+    const stats = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    if (!stats.length) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">No streams loaded</div>';
+      return;
+    }
+    list.innerHTML = stats.map(s => `
+      <div onclick="selectStream(${s.streamId})" id="stream-row-${s.streamId}"
+           style="padding:8px 12px;cursor:pointer;border-radius:4px;margin:2px 4px;">
+        <div style="font-size:13px;font-weight:600;">Stream ${s.streamId}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+          ${s.tokenCount.toLocaleString()} tokens &nbsp;·&nbsp; ${s.symbolCount.toLocaleString()} symbols
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;">${e.message}</div>`;
+  }
+}
+
+function highlightStream(streamId) {
+  document.querySelectorAll('[id^="stream-row-"]').forEach(el => {
+    const sid = parseInt(el.id.replace('stream-row-',''));
+    el.style.background = sid === streamId ? 'rgba(88,166,255,.12)' : '';
+    el.style.color      = sid === streamId ? 'var(--accent)' : '';
+  });
+}
+
+async function selectStream(streamId) {
+  browseState.stream = streamId;
+  browseState.symbol = '';
+  browseState.expiry = '';
+  highlightStream(streamId);
+  $('sym-list').innerHTML = '<div style="padding:12px 16px;color:var(--text-muted);font-size:12px;"><span class="spinner"></span> Loading...</div>';
+  $('exp-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Select a symbol</div>';
+  clearChain();
+  try {
+    const data = await sendCommand(CMD.GET_SYMBOLS_BY_STREAM, { streamId });
+    const syms = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    browseState.symbols = syms;
+    $('sym-count').textContent = syms.length.toLocaleString();
+    renderSymbolList(syms);
+  } catch (e) {
+    $('sym-list').innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;">${e.message}</div>`;
+  }
+}
+
+function renderSymbolList(syms) {
+  const filter = ($('sym-filter').value || '').toUpperCase();
+  const visible = filter ? syms.filter(s => s.toUpperCase().includes(filter)) : syms;
+  if (!visible.length) {
+    $('sym-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">No symbols match</div>';
+    return;
+  }
+  $('sym-list').innerHTML = visible.map(s => {
+    const active = s === browseState.symbol ? 'background:rgba(88,166,255,.12);color:var(--accent);font-weight:600;' : '';
+    return `<div onclick="selectSymbol('${s}')" style="padding:6px 14px;cursor:pointer;font-size:13px;${active}border-radius:4px;margin:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${s}">${s}</div>`;
+  }).join('');
+}
+
+async function selectSymbol(symbol) {
+  browseState.symbol = symbol;
+  browseState.expiry = '';
+  renderSymbolList(browseState.symbols);
+  $('exp-list').innerHTML = '<div style="padding:12px 16px;color:var(--text-muted);font-size:12px;"><span class="spinner"></span> Loading...</div>';
+  clearChain();
+  try {
+    const data = await sendCommand(CMD.GET_EXPIRIES_BY_STREAM, { streamId: browseState.stream, symbol });
+    const exps = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderExpiryList(exps);
+  } catch (e) {
+    $('exp-list').innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;">${e.message}</div>`;
+  }
+}
+
+function renderExpiryList(exps) {
+  if (!exps.length) {
+    $('exp-list').innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:12px;">No expiries (EQ)</div>';
+    loadOptionChain(browseState.symbol, '');
+    return;
+  }
+  $('exp-list').innerHTML = exps.map(e => {
+    const active = e === browseState.expiry ? 'background:rgba(88,166,255,.12);color:var(--accent);font-weight:600;' : '';
+    const d = new Date(e);
+    const label = isNaN(d) ? e : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' });
+    return `<div onclick="selectExpiry('${e}')" style="padding:6px 14px;cursor:pointer;font-size:13px;${active}border-radius:4px;margin:1px 4px;">${label}</div>`;
+  }).join('');
+}
+
+async function selectExpiry(expiry) {
+  browseState.expiry = expiry;
+  $('exp-list').querySelectorAll('div').forEach(d => {
+    const active = d.getAttribute('onclick') === `selectExpiry('${expiry}')`;
+    d.style.background = active ? 'rgba(88,166,255,.12)' : '';
+    d.style.color      = active ? 'var(--accent)'        : '';
+    d.style.fontWeight = active ? '600'                  : '';
+  });
+  await loadOptionChain(browseState.symbol, expiry);
+}
+
+async function loadOptionChain(symbol, expiry) {
+  $('chain-title').textContent = symbol + (expiry ? ' · ' + expiry : '');
+  $('chain-fut').textContent   = '';
+  $('chain-head').innerHTML    = '<tr><th colspan="5" style="padding:12px;text-align:center;color:var(--text-muted);font-weight:400;"><span class="spinner"></span> Loading...</th></tr>';
+  $('chain-tbody').innerHTML   = '';
+  try {
+    const streamId = browseState.stream;
+    const args = expiry ? { symbol, expiry, streamId } : { symbol, streamId };
+    const data  = await sendCommand(CMD.SEARCH_INSTRUMENTS, args);
+    const rows  = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderOptionChain(rows);
+  } catch (e) {
+    $('chain-head').innerHTML = `<tr><td colspan="5" style="padding:12px;color:var(--danger);">${e.message}</td></tr>`;
+  }
+}
+
+function renderOptionChain(rows) {
+  const futs = rows.filter(r => r.type && r.type.startsWith('FUT'));
+  const ces  = rows.filter(r => r.optionType === 'CE');
+  const pes  = rows.filter(r => r.optionType === 'PE');
+  const eqs  = rows.filter(r => !futs.includes(r) && !ces.includes(r) && !pes.includes(r));
+
+  if (futs.length) {
+    $('chain-fut').textContent = 'FUT: Tk ' + futs.map(f => f.token).join(', ') + '  Lot ' + (futs[0].lotSize || '—');
+  }
+
+  if (ces.length || pes.length) {
+    const strikeMap = {};
+    ces.forEach(r => { strikeMap[r.strike] = strikeMap[r.strike] || {}; strikeMap[r.strike].ce = r; });
+    pes.forEach(r => { strikeMap[r.strike] = strikeMap[r.strike] || {}; strikeMap[r.strike].pe = r; });
+    const strikes = Object.keys(strikeMap).map(Number).sort((a,b) => a-b);
+
+    $('chain-head').innerHTML = `
+      <tr style="background:var(--bg-card);">
+        <th colspan="2" style="padding:7px 12px;text-align:center;border-bottom:1px solid var(--border);color:var(--accent);">CALL (CE)</th>
+        <th style="padding:7px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);border-right:1px solid var(--border);">STRIKE</th>
+        <th colspan="2" style="padding:7px 12px;text-align:center;border-bottom:1px solid var(--border);color:#f8a261;">PUT (PE)</th>
+      </tr>
+      <tr style="background:var(--bg-card);font-size:11px;color:var(--text-muted);">
+        <th style="padding:4px 12px;text-align:right;border-bottom:1px solid var(--border);">Token</th>
+        <th style="padding:4px 8px;text-align:right;border-bottom:1px solid var(--border);">Lot</th>
+        <th style="padding:4px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);border-right:1px solid var(--border);">Rs</th>
+        <th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Token</th>
+        <th style="padding:4px 12px;text-align:left;border-bottom:1px solid var(--border);">Lot</th>
+      </tr>`;
+
+    $('chain-tbody').innerHTML = strikes.map(strike => {
+      const ce = strikeMap[strike].ce;
+      const pe = strikeMap[strike].pe;
+      return `<tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+        <td style="padding:5px 12px;text-align:right;font-family:monospace;color:var(--accent);">${ce ? ce.token : '—'}</td>
+        <td style="padding:5px 8px;text-align:right;color:var(--text-muted);">${ce ? ce.lotSize : '—'}</td>
+        <td style="padding:5px 8px;text-align:center;font-weight:600;border-left:1px solid var(--border);border-right:1px solid var(--border);">${Number(strike).toFixed(0)}</td>
+        <td style="padding:5px 8px;text-align:left;font-family:monospace;color:#f8a261;">${pe ? pe.token : '—'}</td>
+        <td style="padding:5px 12px;text-align:left;color:var(--text-muted);">${pe ? pe.lotSize : '—'}</td>
+      </tr>`;
+    }).join('');
+
+  } else {
+    const all = [...futs, ...eqs];
+    $('chain-head').innerHTML = `<tr style="background:var(--bg-card);">
+      <th style="padding:7px 8px;border-bottom:1px solid var(--border);">Token</th>
+      <th style="padding:7px 8px;border-bottom:1px solid var(--border);">Symbol</th>
+      <th style="padding:7px 8px;border-bottom:1px solid var(--border);">Type</th>
+      <th style="padding:7px 8px;border-bottom:1px solid var(--border);">Expiry</th>
+      <th style="padding:7px 8px;border-bottom:1px solid var(--border);">Lot</th>
+      <th style="padding:7px 8px;border-bottom:1px solid var(--border);">Tick</th>
+    </tr>`;
+    $('chain-tbody').innerHTML = all.map(r => `<tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+      <td style="padding:5px 8px;font-family:monospace;">${r.token}</td>
+      <td style="padding:5px 8px;font-weight:600;">${r.symbol}</td>
+      <td style="padding:5px 8px;">${typeBadge(r.type)}</td>
+      <td style="padding:5px 8px;">${r.expiry||'—'}</td>
+      <td style="padding:5px 8px;">${r.lotSize}</td>
+      <td style="padding:5px 8px;">${r.tickSize}</td>
+    </tr>`).join('') || '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text-muted);">No data</td></tr>';
+  }
+}
+
+function clearChain() {
+  var el;
+  if ((el = $('chain-title'))) { el.textContent = 'OPTION CHAIN'; }
+  if ((el = $('chain-fut')))   { el.textContent = ''; }
+  if ((el = $('chain-head')))  { el.innerHTML   = '<tr><th colspan="5" style="padding:20px;text-align:center;color:var(--text-muted);font-weight:400;">Select a symbol and expiry</th></tr>'; }
+  if ((el = $('chain-tbody'))) { el.innerHTML   = ''; }
+}
+
+// ── Traders ───────────────────────────────────────────────────────────────────
+async function loadTraders() {
+  $('traders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9"><span class="spinner"></span>Loading...</td></tr>`;
+  try {
+    const data = await sendCommand(CMD.GET_ALL_TRADERS, {});
+    const arr  = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    state.traders = arr;
+    if ($('dash-trader-count')) { $('dash-trader-count').textContent = arr.length; }
+    renderTradersTable(arr);
+  } catch (e) {
+    $('traders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9" style="color:var(--danger)">${e.message}</td></tr>`;
+  }
+}
+
+function renderTradersTable(rows) {
+  if (!rows.length) { $('traders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9">No traders found</td></tr>`; return; }
+  $('traders-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.traderId}</td>
+      <td><strong>${r.loginName}</strong></td>
+      <td>${r.firstName||''} ${r.lastName||''}</td>
+      <td>${r.email||'—'}</td>
+      <td>${r.mobile||'—'}</td>
+      <td>${roleBadge(r.roleId)}</td>
+      <td>${activeBadge(r.status)}</td>
+      <td>${r.createdOn||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="openEditTrader(${r.traderId})">Edit</button>
+        <button class="btn btn-ghost btn-sm" style="margin-left:4px" onclick="openResetPw(${r.traderId},'${r.loginName}')">Reset PW</button>
+        <button class="btn btn-sm ${r.status ? 'btn-danger' : 'btn-success'}" style="margin-left:4px"
+          onclick="toggleTrader(${r.traderId},${r.status})">${r.status ? 'Disable' : 'Enable'}</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openAddTrader() {
+  $('modal-trader-title').textContent = 'Add Trader';
+  $('mt-trader-id').value = '';
+  $('mt-login').value = ''; $('mt-login').disabled = false;
+  $('mt-password').value = ''; $('mt-pass-group').style.display = '';
+  $('mt-first').value = ''; $('mt-last').value = '';
+  $('mt-email').value = ''; $('mt-mobile').value = '';
+  $('mt-role').value = '2';
+  $('mt-error').textContent = '';
+  openModal('modal-trader');
+  $('mt-login').focus();
+}
+
+function openEditTrader(traderId) {
+  const t = state.traders.find(x => x.traderId === traderId);
+  if (!t) return;
+  $('modal-trader-title').textContent = 'Edit Trader';
+  $('mt-trader-id').value = t.traderId;
+  $('mt-login').value = t.loginName; $('mt-login').disabled = true;
+  $('mt-pass-group').style.display = 'none';
+  $('mt-first').value  = t.firstName || '';
+  $('mt-last').value   = t.lastName  || '';
+  $('mt-email').value  = t.email     || '';
+  $('mt-mobile').value = t.mobile    || '';
+  $('mt-role').value   = String(t.roleId);
+  $('mt-error').textContent = '';
+  openModal('modal-trader');
+}
+
+async function saveTrader() {
+  $('mt-error').textContent = '';
+  $('btn-save-trader').disabled = true;
+  const tid = $('mt-trader-id').value;
+  try {
+    if (!tid) {
+      // Create
+      const login = $('mt-login').value.trim();
+      const pass  = $('mt-password').value;
+      if (!login || !pass) { $('mt-error').textContent = 'Login name and password are required'; return; }
+      await sendCommand(CMD.CREATE_TRADER, {
+        loginName: login, password: pass,
+        firstName: $('mt-first').value.trim(),
+        lastName:  $('mt-last').value.trim(),
+        email:     $('mt-email').value.trim(),
+        mobile:    $('mt-mobile').value.trim(),
+        roleId:    parseInt($('mt-role').value),
+      });
+    } else {
+      // Update
+      await sendCommand(CMD.UPDATE_TRADER, {
+        traderId:  parseInt(tid),
+        firstName: $('mt-first').value.trim(),
+        lastName:  $('mt-last').value.trim(),
+        email:     $('mt-email').value.trim(),
+        mobile:    $('mt-mobile').value.trim(),
+        roleId:    parseInt($('mt-role').value),
+      });
+    }
+    closeModal('modal-trader');
+    toast('Trader saved successfully', 'success');
+    await loadTraders();
+  } catch (e) {
+    $('mt-error').textContent = e.message;
+  } finally {
+    $('btn-save-trader').disabled = false;
+  }
+}
+
+async function toggleTrader(traderId, currentStatus) {
+  const action = currentStatus ? 'disable' : 're-enable';
+  if (!confirm(`Are you sure you want to ${action} trader ${traderId}?`)) return;
+  try {
+    await sendCommand(CMD.DISABLE_TRADER, { traderId, status: currentStatus ? 0 : 1 });
+    toast(`Trader ${action}d`, 'success');
+    await loadTraders();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function openResetPw(traderId, loginName) {
+  $('rp-trader-id').value = traderId;
+  $('rp-login-name').textContent = loginName;
+  $('rp-new-pass').value = '';
+  $('rp-error').textContent = '';
+  openModal('modal-reset-pw');
+  $('rp-new-pass').focus();
+}
+
+async function confirmResetPw() {
+  $('rp-error').textContent = '';
+  const pass = $('rp-new-pass').value;
+  if (pass.length < 6) { $('rp-error').textContent = 'Password must be at least 6 characters'; return; }
+  $('btn-confirm-reset-pw').disabled = true;
+  try {
+    await sendCommand(CMD.RESET_PASSWORD, { traderId: parseInt($('rp-trader-id').value), newPassword: pass });
+    closeModal('modal-reset-pw');
+    toast('Password reset successfully', 'success');
+  } catch (e) {
+    $('rp-error').textContent = e.message;
+  } finally {
+    $('btn-confirm-reset-pw').disabled = false;
+  }
+}
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+async function fetchOrders() {
+  $('btn-fetch-orders').disabled = true;
+  $('orders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9"><span class="spinner"></span>Loading...</td></tr>`;
+  const accountId = parseInt($('ord-account-id').value) || 0;
+  try {
+    const data = await sendCommand(CMD.GET_ORDERS_BY_TRADER, { accountId });
+    const rows = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderOrdersTable(rows);
+    $('orders-count').textContent = `${rows.length} order${rows.length !== 1 ? 's' : ''} fetched`;
+  } catch (e) {
+    $('orders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9" style="color:var(--danger)">${e.message}</td></tr>`;
+    $('orders-count').textContent = '';
+  } finally {
+    $('btn-fetch-orders').disabled = false;
+  }
+}
+
+function renderOrdersTable(rows) {
+  if (!rows.length) { $('orders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9">No orders found</td></tr>`; return; }
+  $('orders-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.orderId}</td>
+      <td>${r.accountId}</td>
+      <td>${r.token}</td>
+      <td>${sideBadge(r.side)}</td>
+      <td>${r.type||'—'}</td>
+      <td>${fmtN(r.price)}</td>
+      <td>${fmtN(r.qty)}</td>
+      <td>${fmtN(r.filledQty)}</td>
+      <td>${statusBadge(r.status)}</td>
+    </tr>`).join('');
+}
+
+async function exportOrders() {
+  $('btn-export-orders').disabled = true;
+  const accountId = parseInt($('ord-account-id').value) || 0;
+  try {
+    const data = await sendCommand(CMD.EXPORT_ORDERS, { accountId });
+    const csv  = typeof data === 'string' ? data : (data && data.csv ? data.csv : JSON.stringify(data));
+    downloadCsv(csv, `orders_${fmtDateStamp()}.csv`);
+    toast('Export downloaded', 'success');
+  } catch (e) { toast('Export failed: ' + e.message, 'error'); }
+  finally { $('btn-export-orders').disabled = false; }
+}
+
+// ── Positions ─────────────────────────────────────────────────────────────────
+async function fetchPositions() {
+  $('btn-fetch-positions').disabled = true;
+  $('positions-tbody').innerHTML = `<tr class="empty-row"><td colspan="7"><span class="spinner"></span>Loading...</td></tr>`;
+  const accountId = parseInt($('pos-account-id').value) || 0;
+  try {
+    const data = await sendCommand(CMD.GET_ALL_POSITIONS, { accountId });
+    const rows = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderPositionsTable(rows);
+
+    // Compute stat card totals
+    let openCount = 0, totalMtm = 0, totalReal = 0, totalUnreal = 0;
+    rows.forEach(r => {
+      if (r.netQty !== 0) openCount++;
+      totalMtm    += Number(r.mtm)          || 0;
+      totalReal   += Number(r.realizedPnl)  || 0;
+      totalUnreal += Number(r.unrealizedPnl)|| 0;
+    });
+    $('pos-open-count').textContent = openCount;
+    $('pos-total-mtm').textContent  = fmtN(totalMtm);
+    $('pos-total-mtm').className    = 'stat-value ' + (totalMtm >= 0 ? 'green' : 'red');
+    $('pos-realized').textContent   = fmtN(totalReal);
+    $('pos-realized').className     = 'stat-value ' + (totalReal >= 0 ? 'green' : 'red');
+    $('pos-unrealized').textContent = fmtN(totalUnreal);
+    $('pos-unrealized').className   = 'stat-value ' + (totalUnreal >= 0 ? 'green' : 'red');
+  } catch (e) {
+    $('positions-tbody').innerHTML = `<tr class="empty-row"><td colspan="7" style="color:var(--danger)">${e.message}</td></tr>`;
+  } finally {
+    $('btn-fetch-positions').disabled = false;
+  }
+}
+
+function renderPositionsTable(rows) {
+  if (!rows.length) { $('positions-tbody').innerHTML = `<tr class="empty-row"><td colspan="7">No positions found</td></tr>`; return; }
+  $('positions-tbody').innerHTML = rows.map(r => {
+    const mtm    = Number(r.mtm)           || 0;
+    const real   = Number(r.realizedPnl)   || 0;
+    const unreal = Number(r.unrealizedPnl) || 0;
+    return `<tr>
+      <td>${r.accountId}</td>
+      <td>${r.token}</td>
+      <td><strong>${r.netQty}</strong></td>
+      <td>${fmtN(r.avgPrice)}</td>
+      <td class="${pnlClass(mtm)}">${fmtN(mtm)}</td>
+      <td class="${pnlClass(real)}">${fmtN(real)}</td>
+      <td class="${pnlClass(unreal)}">${fmtN(unreal)}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function exportPositions() {
+  $('btn-export-positions').disabled = true;
+  const accountId = parseInt($('pos-account-id').value) || 0;
+  try {
+    const data = await sendCommand(CMD.EXPORT_POSITIONS, { accountId });
+    const csv  = typeof data === 'string' ? data : (data && data.csv ? data.csv : JSON.stringify(data));
+    downloadCsv(csv, `positions_${fmtDateStamp()}.csv`);
+    toast('Export downloaded', 'success');
+  } catch (e) { toast('Export failed: ' + e.message, 'error'); }
+  finally { $('btn-export-positions').disabled = false; }
+}
+
+// ── Risk ──────────────────────────────────────────────────────────────────────
+async function loadGlobalRisk() {
+  $('risk-global-msg').textContent = '';
+  try {
+    const data = await sendCommand(CMD.GET_GLOBAL_RISK, {});
+    const r    = typeof data === 'string' ? JSON.parse(data) : data;
+    $('risk-max-loss').value   = r.maxLoss           ?? '';
+    $('risk-max-orders').value = r.maxOpenOrders     ?? '';
+    $('risk-max-exp').value    = r.maxExposure       ?? '';
+    $('risk-max-ops').value    = r.maxOrdersPerSecond ?? '';
+    $('risk-global-msg').style.color = 'var(--success)';
+    $('risk-global-msg').textContent = 'Loaded';
+  } catch (e) {
+    $('risk-global-msg').style.color = 'var(--danger)';
+    $('risk-global-msg').textContent = e.message;
+  }
+}
+
+async function saveGlobalRisk() {
+  $('risk-global-msg').textContent = '';
+  $('btn-save-global-risk').disabled = true;
+  try {
+    await sendCommand(CMD.SET_GLOBAL_RISK, {
+      maxLoss:           parseFloat($('risk-max-loss').value)   || 0,
+      maxOpenOrders:     parseInt($('risk-max-orders').value)   || 0,
+      maxExposure:       parseFloat($('risk-max-exp').value)    || 0,
+      maxOrdersPerSecond:parseInt($('risk-max-ops').value)      || 0,
+    });
+    $('risk-global-msg').style.color = 'var(--success)';
+    $('risk-global-msg').textContent = 'Saved successfully';
+    toast('Global risk saved', 'success');
+    loadDashboard();
+  } catch (e) {
+    $('risk-global-msg').style.color = 'var(--danger)';
+    $('risk-global-msg').textContent = e.message;
+  } finally { $('btn-save-global-risk').disabled = false; }
+}
+
+async function loadTraderRisk() {
+  const tid = parseInt($('trisk-trader-id').value);
+  if (!tid) { $('risk-trader-msg').textContent = 'Enter a trader ID'; return; }
+  $('risk-trader-msg').textContent = '';
+  try {
+    const data = await sendCommand(CMD.GET_TRADER_RISK, { traderId: tid });
+    const r    = typeof data === 'string' ? JSON.parse(data) : data;
+    $('trisk-max-loss').value = r.maxLoss;
+    $('trisk-max-pos').value  = r.maxPosition;
+    $('trisk-max-qty').value  = r.maxOrderQty;
+    $('trader-risk-fields').style.display   = '';
+    $('btn-save-trader-risk').style.display = '';
+    $('risk-trader-msg').style.color = 'var(--success)';
+    $('risk-trader-msg').textContent = 'Loaded';
+  } catch (e) {
+    $('risk-trader-msg').style.color = 'var(--danger)';
+    $('risk-trader-msg').textContent = e.message;
+  }
+}
+
+async function saveTraderRisk() {
+  const tid = parseInt($('trisk-trader-id').value);
+  $('btn-save-trader-risk').disabled = true;
+  try {
+    await sendCommand(CMD.SET_TRADER_RISK, {
+      traderId:    tid,
+      maxLoss:     parseFloat($('trisk-max-loss').value) || 0,
+      maxPosition: parseInt($('trisk-max-pos').value)   || 0,
+      maxOrderQty: parseInt($('trisk-max-qty').value)   || 0,
+    });
+    $('risk-trader-msg').style.color = 'var(--success)';
+    $('risk-trader-msg').textContent = 'Saved successfully';
+    toast('Trader risk saved', 'success');
+  } catch (e) {
+    $('risk-trader-msg').style.color = 'var(--danger)';
+    $('risk-trader-msg').textContent = e.message;
+  } finally { $('btn-save-trader-risk').disabled = false; }
+}
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+async function fetchAudit() {
+  $('btn-fetch-audit').disabled = true;
+  $('audit-tbody').innerHTML = `<tr class="empty-row"><td colspan="5"><span class="spinner"></span>Loading...</td></tr>`;
+  const traderId = parseInt($('audit-trader-id').value) || 0;
+  const module_  = $('audit-module').value.trim();
+  const limit    = parseInt($('audit-limit').value) || 100;
+  try {
+    const data = await sendCommand(CMD.GET_AUDIT_LOG, { traderId, module: module_, limit });
+    const rows = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderAuditTable(rows);
+    $('audit-count').textContent = `${rows.length} event${rows.length !== 1 ? 's' : ''}`;
+  } catch (e) {
+    $('audit-tbody').innerHTML = `<tr class="empty-row"><td colspan="5" style="color:var(--danger)">${e.message}</td></tr>`;
+    $('audit-count').textContent = '';
+  } finally { $('btn-fetch-audit').disabled = false; }
+}
+
+function renderAuditTable(rows) {
+  if (!rows.length) { $('audit-tbody').innerHTML = `<tr class="empty-row"><td colspan="5">No events found</td></tr>`; return; }
+  $('audit-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.time||'—'}</td>
+      <td>${r.traderId}</td>
+      <td>${r.module||'—'}</td>
+      <td>${r.action||'—'}</td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${r.desc||'—'}</td>
+    </tr>`).join('');
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  $('btn-refresh-settings').disabled = true;
+  $('settings-tbody').innerHTML = `<tr class="empty-row"><td colspan="3"><span class="spinner"></span>Loading...</td></tr>`;
+  try {
+    const data = await sendCommand(CMD.GET_ALL_SETTINGS, {});
+    const settings = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderSettingsTable(settings);
+  } catch (e) {
+    $('settings-tbody').innerHTML = `<tr class="empty-row"><td colspan="3" style="color:var(--danger)">${e.message}</td></tr>`;
+  } finally { $('btn-refresh-settings').disabled = false; }
+}
+
+function renderSettingsTable(rows) {
+  if (!rows.length) { $('settings-tbody').innerHTML = `<tr class="empty-row"><td colspan="3">No settings found</td></tr>`; return; }
+  $('settings-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.key||r.settingKey||'—'}</td>
+      <td>${r.value||r.settingValue||'—'}</td>
+      <td><button class="btn btn-ghost btn-sm"
+          data-k="${(r.key||r.settingKey||'').replace(/"/g,'&quot;')}"
+          data-v="${(r.value||r.settingValue||'').replace(/"/g,'&quot;')}"
+          onclick="openEditSetting(this.dataset.k,this.dataset.v)">Edit</button></td>
+    </tr>`).join('');
+}
+
+function openEditSetting(key, value) {
+  $('es-key').value       = key;
+  $('es-key-label').textContent = key;
+  $('es-value').value     = value;
+  $('es-error').textContent = '';
+  openModal('modal-setting');
+  $('es-value').focus();
+}
+
+async function saveSetting() {
+  $('es-error').textContent = '';
+  $('btn-save-setting').disabled = true;
+  const key   = $('es-key').value;
+  const value = $('es-value').value;
+  try {
+    await sendCommand(CMD.SET_SETTING, { key, value });
+    closeModal('modal-setting');
+    toast('Setting saved', 'success');
+    await loadSettings();
+  } catch (e) {
+    $('es-error').textContent = e.message;
+  } finally { $('btn-save-setting').disabled = false; }
+}
+
+// ── Shared utilities ──────────────────────────────────────────────────────────
+function downloadCsv(csv, filename) {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function fmtDateStamp() {
+  const d = new Date();
+  return d.getFullYear().toString()
+    + String(d.getMonth()+1).padStart(2,'0')
+    + String(d.getDate()).padStart(2,'0')
+    + '_' + String(d.getHours()).padStart(2,'0')
+    + String(d.getMinutes()).padStart(2,'0')
+    + String(d.getSeconds()).padStart(2,'0');
+}
+
+// ── Connect / disconnect ─────────────────────────────────────────────────────
+function connect() {
+  const url = $('splash-url').value.trim();
+  if (!url) return;
+  setSplashStatus('Connecting...', 'info');
+  $('splash-btn-connect').disabled = true;
+  state.ws = new WebSocket(url);
+  state.ws.onopen = () => {
+    state.connected = true;
+    showSplash('login');
+  };
+  state.ws.onmessage = e => onMessage(e.data);
+  state.ws.onerror   = () => {};
+  state.ws.onclose   = () => {
+    state.connected = false;
+    state.loggedIn  = false;
+    state.cmdId     = 1;
+    state.pending   = {};
+    // Guard: instruments-page elements may not be in the DOM
+    var el;
+    if ((el = $('btn-load')))    { el.disabled = true; }
+    if ((el = $('btn-delete')))  { el.disabled = true; }
+    if ((el = $('btn-nse-load'))){ el.disabled = true; }
+    if ((el = $('inst-count')))  { el.textContent = '—'; }
+    window.location.href = 'login.html';
+  };
+}
+
+function disconnect() {
+  if (state.ws) { state.ws.close(); state.ws = null; }
+}
+
+// ── Login ────────────────────────────────────────────────────────────────────
+function doLogin() {
+  const loginName = $('inp-user').value.trim();
+  const password  = $('inp-pass').value;
+  if (!loginName || !password) { $('login-error').textContent = 'Enter username and password'; return; }
+  $('login-error').textContent = '';
+  $('btn-login').disabled = true;
+  state.loginName = loginName;
+  send(CH.EVENT, {
+    type: MSG.LOGIN, traderId: 0, sessionId: 0,
+    loginName, password, ip: '127.0.0.1', machine: 'browser', version: '1.0',
+  });
+  setTimeout(() => { $('btn-login').disabled = false; }, 5000);
+}
+
+$('splash-btn-connect').onclick = connect;
+$('splash-url').onkeydown       = e => { if (e.key === 'Enter') connect(); };
+$('btn-login').onclick          = doLogin;
+$('splash-btn-disconnect').onclick = disconnect;
+$('inp-pass').onkeydown  = e => { if (e.key === 'Enter') doLogin(); };
+$('inp-user').onkeydown  = e => { if (e.key === 'Enter') $('inp-pass').focus(); };
+
+// ── Logout ───────────────────────────────────────────────────────────────────
+$('btn-logout').onclick = () => {
+  send(CH.EVENT, { type: MSG.LOGOUT, traderId: state.traderId, sessionId: state.sessionId });
+  disconnect();
+};
+
+// -- NSE MTBT Contract File Parser -------------------------------------------------
+const NSE_EPOCH_OFFSET = 315532800; // seconds between 01-Jan-1970 and 01-Jan-1980
+
+function nseEpochToDate(secs)
+{
+    if (!secs || secs <= 0) { return ''; }
+    return new Date((secs + NSE_EPOCH_OFFSET) * 1000).toISOString().slice(0, 10);
+}
+
+function parseNseContractTxt(text)
+{
+    const records = [];
+    let skipped = 0;
+    const lines = text.split('\n');
+    for (let i = 1; i < lines.length; i++) // skip NEATFO|7.0.4| header
+    {
+        const line = lines[i].trimEnd();
+        if (!line) { continue; }
+        const f = line.split('|');
+        if (f.length < 33) { skipped++; continue; }
+        try
+        {
+            const token        = parseInt(f[0]);
+            const underlyingTk = parseInt(f[1]) || 0;
+            const instrType    = f[2].trim();
+            const symbol       = f[3].trim();
+            const series       = f[4].trim() || 'XX';
+            const expirySecs   = parseInt(f[6]) || 0;
+            const strikePaise  = parseInt(f[7]);
+            const optType      = f[8].trim();
+            const pricePrecision = parseInt(f[14]) || 2;
+            const lotSize      = parseInt(f[30]) || 1;
+            const tickPaise    = parseInt(f[32]) || 5;
+            if (isNaN(token) || token <= 0) { skipped++; continue; }
+            const expiry     = nseEpochToDate(expirySecs);
+            const strike     = (strikePaise > 0) ? (strikePaise / 100).toFixed(2) : '0.00';
+            const optionType = (optType === 'XX' || optType === '') ? '' : optType;
+            const tickSize   = (tickPaise / 100).toFixed(2);
+            records.push({ token, symbol, series, instrType, expiry, strike,
+                           optionType, lotSize, tickSize, underlyingTk,
+                           pricePrecision, qtyPrecision: 0, freezeQty: 0 });
+        }
+        catch (_) { skipped++; }
+    }
+    return { records, skipped };
+}
+
+function parseNseStreamCsv(text)
+{
+    // Format: C,StreamID,Token,Instrument,Symbol,ExpiryDate,StrikePrice,OptionType
+    // Header line: timestamp,count,
+    const map = {}; // token -> streamId
+    const lines = text.split('\n');
+    for (let i = 1; i < lines.length; i++)
+    {
+        const line = lines[i].trim();
+        if (!line || line[0] !== 'C') { continue; }
+        const f = line.split(',');
+        if (f.length < 3) { continue; }
+        const streamId = parseInt(f[1]);
+        const token    = parseInt(f[2]);
+        if (!isNaN(token) && !isNaN(streamId)) { map[token] = streamId; }
+    }
+    return map;
+}
+
+function nseRecordsToCsv(records)
+{
+    const hdr = 'token,symbol,series,instrumentType,expiry,strike,optionType,lotSize,tickSize,underlyingToken,pricePrecision,qtyPrecision,freezeQty,streamId';
+    const rows = records.map(r =>
+        `${r.token},${r.symbol},${r.series},${r.instrType},${r.expiry},${r.strike},${r.optionType},${r.lotSize},${r.tickSize},${r.underlyingTk},${r.pricePrecision},${r.qtyPrecision},${r.freezeQty},${r.streamId||0}`
+    );
+    return [hdr, ...rows].join('\n');
+}
+
+function showNseStatus(msg, type)
+{
+    const el = $('nse-status');
+    el.style.display = 'block'; el.className = type; el.innerHTML = msg;
+}
+
+const nseState = { contractText: null, streamText: null };
+
+function nseSetupDrop(dropId, inputId, stateKey, labelId)
+{
+    const dz = $(dropId), inp = $(inputId);
+    function onFile(file)
+    {
+        if (!file) { return; }
+        const reader = new FileReader();
+        reader.onload = ev =>
+        {
+            nseState[stateKey] = ev.target.result;
+            $(labelId).textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+            $(labelId).style.color = 'var(--success)';
+            dz.classList.add('has-file');
+            $('btn-nse-load').disabled = !state.loggedIn || !nseState.contractText;
+            $('btn-nse-clear').style.display = '';
+            $('nse-status').style.display = 'none';
+        };
+        reader.readAsText(file);
+    }
+    dz.ondragover  = e => { e.preventDefault(); dz.classList.add('drag-over'); };
+    dz.ondragleave = () => dz.classList.remove('drag-over');
+    dz.ondrop      = e => { e.preventDefault(); dz.classList.remove('drag-over'); onFile(e.dataTransfer.files[0]); };
+    dz.onclick     = () => inp.click();
+    inp.onchange   = () => onFile(inp.files[0]);
+}
+
+
+// ── Modal button bindings (always in DOM) ──────────────────────────────────
+$('btn-save-trader').onclick      = saveTrader;
+$('btn-confirm-reset-pw').onclick = confirmResetPw;
+
+// ── Page registry & router ────────────────────────────────────────────────────
+var _currentPage = null;
+
+function showPage(name)
+{
+  // Nav highlight
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var navItem = document.querySelector('.nav-item[data-page="' + name + '"]');
+  if (navItem) { navItem.classList.add('active'); }
+
+  // Inject HTML
+  var pg = (window.FP || {})[name];
+  if (!pg) { console.warn('Falcon: page not registered:', name); return; }
+  $('content').innerHTML = pg.html;
+  // Only one page lives in #content at a time; always make it visible.
+  var pageEl = $('content').querySelector('.page');
+  if (pageEl) { pageEl.classList.add('active'); }
+  initCollapsibleCards();
+  if (pg.init) { pg.init(); }
+
+  // Lazy-load data on first visit
+  if (state.loggedIn)
+  {
+    if (name === 'dashboard')   { loadDashboard(); }
+    if (name === 'traders')     { loadTraders(); }
+    if (name === 'instruments') { loadStreamStats(); refreshCount(); }
+    if (name === 'strategies')  { loadStrategiesPage(); }
+  }
+  _currentPage = name;
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item[data-page]').forEach(function(item)
+{
+  item.addEventListener('click', function()
+  {
+    showPage(item.dataset.page);
+  });
+});
+
+// ── Collapsible Cards ────────────────────────────────────────────────────────
+function initCollapsibleCards()
+{
+  document.querySelectorAll('.card').forEach(function(card, idx)
+  {
+    // Skip cards already wired (chevron button already present)
+    if (card.querySelector('.card-toggle-btn')) { return; }
+
+    var children = Array.from(card.children);
+    if (children.length < 2) { return; }   // nothing to collapse
+
+    var header = children[0];
+    var id = 'cc-' + (card.id || ('auto-' + idx));
+
+    // Make header a flex row so chevron sits on the right.
+    // card-header is already flex; card-title and custom headers are not.
+    if (!header.classList.contains('card-header'))
+    {
+      header.style.display        = 'flex';
+      header.style.alignItems     = 'center';
+      header.style.justifyContent = 'space-between';
+    }
+
+    // Remove the bottom spacing from the header and transfer it to the body
+    // wrapper so it disappears when the card is collapsed.
+    var bodyTopPadding = '0px';
+    if (header.classList.contains('card-title'))
+    {
+      header.style.marginBottom = '0';
+      bodyTopPadding = '16px';
+    }
+    else if (header.classList.contains('card-header'))
+    {
+      header.style.marginBottom = '0';
+      bodyTopPadding = '16px';
+    }
+    // Browse card (padding:0, custom header) — grid starts right below
+    // the border, no extra spacing needed.
+
+    // ── Chevron button ────────────────────────────────────────────────────
+    var btn = document.createElement('button');
+    btn.className = 'card-toggle-btn';
+    btn.title     = 'Collapse / Expand';
+    btn.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 14 14" fill="none">' +
+      '<path d="M2 5l5 5 5-5" stroke="currentColor" stroke-width="1.8"' +
+      ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    header.appendChild(btn);
+
+    // ── Wrap remaining children in a collapsible body div ─────────────────
+    var body = document.createElement('div');
+    body.className = 'card-body-wrap';
+    if (bodyTopPadding !== '0px') { body.style.paddingTop = bodyTopPadding; }
+    children.slice(1).forEach(function(c) { body.appendChild(c); });
+    card.appendChild(body);
+
+    // ── Toggle handler ────────────────────────────────────────────────────
+    function applyState(collapsed)
+    {
+      body.classList.toggle('is-collapsed', collapsed);
+      btn.classList.toggle('is-collapsed', collapsed);
+    }
+
+    btn.addEventListener('click', function(e)
+    {
+      e.stopPropagation();
+      var collapsed = !body.classList.contains('is-collapsed');
+      applyState(collapsed);
+      try { localStorage.setItem(id, collapsed ? '1' : '0'); } catch(ex) {}
+    });
+
+    // ── Restore saved state ───────────────────────────────────────────────
+    var saved;
+    try { saved = localStorage.getItem(id); } catch(ex) {}
+    applyState(saved === '1');
+  });
+}
+
+// Run once the DOM is fully parsed (script is at end of body).
+initCollapsibleCards();
+
+// ── Auto-login from login.html ────────────────────────────────────────────────
+function checkAutoLogin()
+{
+  var raw = sessionStorage.getItem('falcon_auth');
+  if (!raw) { return; } // no auto-login — splash handles it normally
+  sessionStorage.removeItem('falcon_auth');
+  var auth;
+  try { auth = JSON.parse(raw); } catch(e) { return; }
+  if (!auth.wsUrl || !auth.loginName || !auth.password) { return; }
+  state.loginName = auth.loginName;
+  var ws2 = new WebSocket(auth.wsUrl);
+  state.ws = ws2;
+  ws2.onopen = function()
+  {
+    state.connected = true;
+    send(CH.EVENT, {
+      type: MSG.LOGIN, traderId: 0, sessionId: 0,
+      loginName: auth.loginName, password: auth.password,
+      ip: '127.0.0.1', machine: 'browser', version: '1.0'
+    });
+  };
+  ws2.onmessage = function(e) { onMessage(e.data); };
+  ws2.onerror   = function() { window.location.href = 'login.html'; };
+  ws2.onclose   = function()
+  {
+    state.connected = false;
+    state.loggedIn  = false;
+    state.cmdId     = 1;
+    state.pending   = {};
+    window.location.href = 'login.html';
+  };
+}
+checkAutoLogin();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Falcon Trader</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+      --border: #30363d; --text: #e6edf3; --text-muted: #8b949e;
+      --accent: #58a6ff; --success: #3fb950; --warning: #d29922;
+      --danger: #f85149;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px; height: 100vh; display: flex; flex-direction: column;
+    }
+    /* Splash */
+    #splash {
+      display: flex; align-items: center; justify-content: center; flex: 1;
+    }
+    .splash-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 40px; width: 360px;
+    }
+    .splash-logo  { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+    .splash-sub   { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+    .splash-status { font-size: 12px; min-height: 18px; margin-top: 8px; }
+    .splash-status.ok  { color: var(--success); }
+    .splash-status.err { color: var(--danger); }
+    /* Top bar */
+    #topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 20px; height: 48px; display: flex; align-items: center;
+      justify-content: space-between; flex-shrink: 0;
+    }
+    .topbar-brand { font-weight: 700; color: var(--accent); font-size: 16px; }
+    .topbar-right { display: flex; align-items: center; gap: 12px;
+                    color: var(--text-muted); font-size: 13px; }
+    /* App layout */
+    #app    { flex-direction: column; flex: 1; overflow: hidden; }
+    #layout { display: flex; flex: 1; overflow: hidden; }
+    #sidebar {
+      width: 180px; background: var(--surface);
+      border-right: 1px solid var(--border); padding: 16px 0; flex-shrink: 0;
+    }
+    #content { flex: 1; overflow-y: auto; padding: 24px; }
+    /* Nav */
+    .nav-section {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--text-muted); padding: 16px 20px 6px;
+    }
+    .nav-item {
+      padding: 8px 20px; cursor: pointer; color: var(--text-muted);
+      font-size: 13px; border-left: 3px solid transparent;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-item:hover  { background: var(--surface2); color: var(--text); }
+    .nav-item.active { color: var(--accent); border-left-color: var(--accent);
+                       background: var(--surface2); }
+    /* Cards */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px; margin-bottom: 16px;
+    }
+    .card-title  { font-weight: 600; margin-bottom: 14px; }
+    .card-header { display: flex; align-items: center;
+                   justify-content: space-between; margin-bottom: 14px; }
+    /* Buttons */
+    .btn {
+      padding: 6px 14px; border-radius: 6px; border: none;
+      cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity .15s;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--accent);   color: #0d1117; }
+    .btn-success { background: var(--success);  color: #0d1117; }
+    .btn-danger  { background: var(--danger);   color: #fff; }
+    .btn-ghost   { background: transparent; color: var(--text-muted);
+                   border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    /* Tables */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left; padding: 8px 12px; color: var(--text-muted);
+      font-weight: 500; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+    .empty-row td { text-align: center; color: var(--text-muted); padding: 24px; }
+    /* Badges */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
+             font-size: 11px; font-weight: 600; }
+    .badge-green  { background: rgba(63,185,80,.15);  color: var(--success); }
+    .badge-red    { background: rgba(248,81,73,.15);  color: var(--danger); }
+    .badge-yellow { background: rgba(210,153,34,.15); color: var(--warning); }
+    .badge-blue   { background: rgba(88,166,255,.15); color: var(--accent); }
+    .badge-muted  { background: var(--surface2); color: var(--text-muted); }
+    /* Forms */
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px;
+    }
+    .form-group input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 10px; border-radius: 6px; font-size: 13px;
+    }
+    .form-group input:focus { outline: none; border-color: var(--accent); }
+    .form-group input:disabled { opacity: .6; }
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 24px; width: 420px;
+    }
+    .modal-box h3  { margin-bottom: 16px; }
+    .modal-footer  { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+    .modal-error   { color: var(--danger); font-size: 12px; min-height: 16px; margin-top: 4px; }
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 18px; font-size: 13px; opacity: 0;
+      transition: opacity .3s; pointer-events: none; z-index: 200;
+    }
+    #toast.show { opacity: 1; }
+    #toast.ok   { border-color: var(--success); color: var(--success); }
+    #toast.err  { border-color: var(--danger);  color: var(--danger); }
+    /* Spinner */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .6s linear infinite;
+      margin-right: 6px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Page headings */
+    .page-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .page-sub   { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+    /* Action row */
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<!-- ── Splash ──────────────────────────────────────────────────────────────── -->
+
+
+<!-- ── Main App ────────────────────────────────────────────────────────────── -->
+<div id="app" style="display:none">
+  <div id="topbar">
+    <div class="topbar-brand">&#9889; Falcon Trader</div>
+    <div class="topbar-right">
+      <span id="lbl-user"></span>
+      <button class="btn btn-ghost btn-sm" id="btn-logout">Logout</button>
+    </div>
+  </div>
+  <div id="layout">
+    <nav id="sidebar">
+      <div class="nav-section">Trading</div>
+      <div class="nav-item active" data-page="strategies"
+           onclick="showPage('strategies')">&#128202; Strategies</div>
+      <div class="nav-item" data-page="orders"
+           onclick="showPage('orders')">&#128203; Orders</div>
+      <div class="nav-item" data-page="positions"
+           onclick="showPage('positions')">&#128188; Positions</div>
+    </nav>
+    <div id="content"></div>
+  </div>
+</div>
+
+<!-- ── Modify Parameter Modal ─────────────────────────────────────────────── -->
+<div id="mod-param" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>Modify Parameter</h3>
+    <input type="hidden" id="mp-inst-id">
+    <div class="form-group">
+      <label>Strategy Instance</label>
+      <input type="text" id="mp-inst-name" disabled>
+    </div>
+    <div class="form-group">
+      <label>Parameter Name</label>
+      <input type="text" id="mp-key" placeholder="e.g. lotSize">
+    </div>
+    <div class="form-group">
+      <label>New Value</label>
+      <input type="text" id="mp-value" placeholder="e.g. 25">
+    </div>
+    <div class="modal-error" id="mp-err"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('mod-param')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-param" onclick="saveParam()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ───────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+var CH  = { CMD: 0, EVT: 1 };
+var MSG = { LOGIN: 1, LOGOUT: 2, LOGIN_ACK: 3, LOGIN_NACK: 4 };
+var TC  = {
+  START_STRATEGY:    1,
+  STOP_STRATEGY:     2,
+  MODIFY_PARAM:      3,
+  GET_MY_ORDERS:     10,
+  GET_MY_POSITIONS:  12,
+  GET_MY_STRATEGIES: 13
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+var st = {
+  ws: null, connected: false, loggedIn: false,
+  traderId: 0, sessionId: 0, cmdId: 1, pending: {},
+  loginName: '', refreshTimer: null
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+var $ = function(id) { return document.getElementById(id); };
+
+function escHtml(s)
+{
+  return String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function fmtNum(v)
+{
+  var n = parseFloat(v);
+  if (isNaN(n)) { return '-'; }
+  return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg, type)
+{
+  var t = $('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (type === 'err' ? 'err' : 'ok');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.className = ''; }, 3000);
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────────
+function openModal(id)  { $(id).classList.remove('hidden'); }
+function closeModal(id) { $(id).classList.add('hidden'); }
+
+// ── WebSocket core ───────────────────────────────────────────────────────────
+function wsSend(ch, data)
+{
+  if (!st.ws || st.ws.readyState !== WebSocket.OPEN) { return; }
+  st.ws.send(JSON.stringify({ ch: ch, data: data }));
+}
+
+function sendCmd(type, extra)
+{
+  return new Promise(function(resolve, reject)
+  {
+    var id = st.cmdId++;
+    st.pending[id] = { resolve: resolve, reject: reject };
+    setTimeout(function()
+    {
+      if (st.pending[id]) { delete st.pending[id]; reject(new Error('Timeout')); }
+    }, 15000);
+    var payload = Object.assign({ type: type, id: id }, extra || {});
+    wsSend(CH.CMD, payload);
+  });
+}
+
+// ── Message handling ─────────────────────────────────────────────────────────
+function onWsMessage(raw)
+{
+  var msg;
+  try { msg = JSON.parse(raw); } catch(e) { return; }
+  if (msg.ch === CH.EVT) { handleServerEvent(msg.data); }
+}
+
+function handleServerEvent(d)
+{
+  if (d.type === MSG.LOGIN_ACK)
+  {
+    var selectedRole = $('inp-role') ? $('inp-role').value : 'trader';
+    var isAdmin = (d.roleId === 1);
+    if (selectedRole === 'admin' && !isAdmin)
+    {
+      $('login-err').textContent = 'Account is not an Admin';
+      $('btn-login').disabled = false;
+      disconnect();
+      $('step-connect').style.display = '';
+      $('step-login').style.display   = 'none';
+      $('btn-connect').disabled = false;
+      setConnStatus('', '');
+      return;
+    }
+    if (selectedRole === 'trader' && isAdmin)
+    {
+      $('login-err').textContent = 'Admin account -- please select Admin role';
+      $('btn-login').disabled = false;
+      disconnect();
+      $('step-connect').style.display = '';
+      $('step-login').style.display   = 'none';
+      $('btn-connect').disabled = false;
+      setConnStatus('', '');
+      return;
+    }
+    st.loggedIn  = true;
+    st.traderId  = d.traderId;
+    st.sessionId = d.sessionId;
+    if (isAdmin)
+    {
+      // Store URL for admin.html auto-fill, then redirect
+      var url = $('inp-url') ? $('inp-url').value.trim() : '';
+      sessionStorage.setItem('falcon_ws_url', url);
+      window.location.href = 'admin.html';
+      return;
+    }
+    $('lbl-user').textContent = st.loginName;
+    showApp();
+    return;
+  }
+  if (d.type === MSG.LOGIN_NACK)
+  {
+    $('login-err').textContent = d.error || 'Login failed';
+    $('btn-login').disabled = false;
+    return;
+  }
+  if (d.commandId !== undefined)
+  {
+    var cb = st.pending[d.commandId];
+    if (!cb) { return; }
+    delete st.pending[d.commandId];
+    if (d.success === false)
+    {
+      cb.reject(new Error(d.error || 'Command failed'));
+    }
+    else
+    {
+      var data = d.data;
+      if (typeof data === 'string')
+      {
+        try { data = JSON.parse(data); } catch(e) {}
+      }
+      cb.resolve(data);
+    }
+  }
+}
+
+
+// ── Login / Logout ───────────────────────────────────────────────────────────
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+function showApp()
+{
+  $('splash').style.display = 'none';
+  $('app').style.display    = 'flex';
+  $('app').style.flexDirection = 'column';
+  $('app').style.flex = '1';
+  showPage('strategies');
+}
+
+function showPage(name)
+{
+  stopRefresh();
+  document.querySelectorAll('.nav-item').forEach(function(n)
+  {
+    n.classList.remove('active');
+  });
+  var nav = document.querySelector('.nav-item[data-page="' + name + '"]');
+  if (nav) { nav.classList.add('active'); }
+
+  if      (name === 'strategies') { pageStrategies(); }
+  else if (name === 'orders')     { pageOrders(); }
+  else if (name === 'positions')  { pagePositions(); }
+}
+
+function stopRefresh()
+{
+  if (st.refreshTimer) { clearInterval(st.refreshTimer); st.refreshTimer = null; }
+}
+
+// ── Strategies Page ──────────────────────────────────────────────────────────
+function pageStrategies()
+{
+  $('content').innerHTML =
+    '<div class="page-title">Strategies</div>' +
+    '<div class="page-sub">Manage your assigned strategy instances.</div>' +
+    '<div class="card">' +
+      '<div class="card-header">' +
+        '<div class="card-title">My Strategies</div>' +
+        '<button class="btn btn-ghost btn-sm" onclick="loadStrategies()">Refresh</button>' +
+      '</div>' +
+      '<div class="table-wrap">' +
+        '<table>' +
+          '<thead><tr>' +
+            '<th>ID</th><th>Name</th><th>Status</th><th>Enabled</th><th>Actions</th>' +
+          '</tr></thead>' +
+          '<tbody id="strat-tbody">' +
+            '<tr class="empty-row"><td colspan="5">' +
+              '<span class="spinner"></span>Loading...</td></tr>' +
+          '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+  loadStrategies();
+}
+
+async function loadStrategies()
+{
+  var tbody = $('strat-tbody');
+  if (!tbody) { return; }
+  tbody.innerHTML =
+    '<tr class="empty-row"><td colspan="5"><span class="spinner"></span>Loading...</td></tr>';
+  try
+  {
+    var data = await sendCmd(TC.GET_MY_STRATEGIES);
+    var rows = Array.isArray(data) ? data : [];
+    renderStrategies(rows);
+  }
+  catch(e)
+  {
+    var el = $('strat-tbody');
+    if (el) { el.innerHTML = '<tr class="empty-row"><td colspan="5" style="color:var(--danger)">' +
+                              escHtml(e.message) + '</td></tr>'; }
+  }
+}
+
+function renderStrategies(rows)
+{
+  var tbody = $('strat-tbody');
+  if (!tbody) { return; }
+  if (!rows.length)
+  {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No strategies assigned</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(function(r)
+  {
+    var enabled = r.enabled === true || r.enabled === 'true';
+    var statusBadge = stratStatusBadge(r.status);
+    var enabledBadge = '<span class="badge ' + (enabled ? 'badge-green' : 'badge-muted') + '">' +
+                       (enabled ? 'Enabled' : 'Disabled') + '</span>';
+    var actionBtn = enabled
+      ? '<button class="btn btn-danger btn-sm" onclick="stopStrategy(' + r.instanceId +
+        ',\'' + escHtml(r.name) + '\')">Stop</button>'
+      : '<button class="btn btn-success btn-sm" onclick="startStrategy(' + r.instanceId +
+        ',\'' + escHtml(r.name) + '\')">Start</button>';
+    return '<tr>' +
+      '<td style="font-family:monospace;font-size:12px">' + r.instanceId + '</td>' +
+      '<td style="font-weight:500">' + escHtml(r.name) + '</td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td>' + enabledBadge + '</td>' +
+      '<td><div class="actions">' + actionBtn +
+        '<button class="btn btn-ghost btn-sm" onclick="openParamModal(' + r.instanceId +
+        ',\'' + escHtml(r.name) + '\')">Modify Param</button>' +
+      '</div></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function stratStatusBadge(status)
+{
+  var s = (status || '').toUpperCase();
+  if (s === 'RUNNING') { return '<span class="badge badge-green">Running</span>'; }
+  if (s === 'STOPPED') { return '<span class="badge badge-red">Stopped</span>'; }
+  if (s === 'PAUSED')  { return '<span class="badge badge-yellow">Paused</span>'; }
+  if (s === 'ERROR')   { return '<span class="badge badge-red">Error</span>'; }
+  return '<span class="badge badge-muted">' + escHtml(status || 'Unknown') + '</span>';
+}
+
+async function startStrategy(instanceId, name)
+{
+  try
+  {
+    await sendCmd(TC.START_STRATEGY, { instanceId: instanceId });
+    showToast('Started: ' + name, 'ok');
+    loadStrategies();
+  }
+  catch(e) { showToast(e.message, 'err'); }
+}
+
+async function stopStrategy(instanceId, name)
+{
+  try
+  {
+    await sendCmd(TC.STOP_STRATEGY, { instanceId: instanceId });
+    showToast('Stopped: ' + name, 'ok');
+    loadStrategies();
+  }
+  catch(e) { showToast(e.message, 'err'); }
+}
+
+// ── Parameter Modal ──────────────────────────────────────────────────────────
+function openParamModal(instanceId, name)
+{
+  $('mp-inst-id').value   = instanceId;
+  $('mp-inst-name').value = name;
+  $('mp-key').value       = '';
+  $('mp-value').value     = '';
+  $('mp-err').textContent = '';
+  openModal('mod-param');
+  setTimeout(function() { $('mp-key').focus(); }, 50);
+}
+
+async function saveParam()
+{
+  var instanceId = parseInt($('mp-inst-id').value, 10);
+  var key   = $('mp-key').value.trim();
+  var value = $('mp-value').value.trim();
+  if (!key) { $('mp-err').textContent = 'Parameter name required'; return; }
+  $('btn-save-param').disabled = true;
+  $('mp-err').textContent = '';
+  try
+  {
+    await sendCmd(TC.MODIFY_PARAM, { instanceId: instanceId, key: key, value: value });
+    closeModal('mod-param');
+    showToast('Parameter updated', 'ok');
+  }
+  catch(e) { $('mp-err').textContent = e.message; }
+  finally   { $('btn-save-param').disabled = false; }
+}
+
+// ── Orders Page ──────────────────────────────────────────────────────────────
+function pageOrders()
+{
+  $('content').innerHTML =
+    '<div class="page-title">Orders</div>' +
+    '<div class="page-sub">Live order book -- auto-refreshes every 5 seconds.</div>' +
+    '<div class="card">' +
+      '<div class="card-header">' +
+        '<div class="card-title">Order Book</div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span id="orders-ts" style="font-size:11px;color:var(--text-muted)"></span>' +
+          '<button class="btn btn-ghost btn-sm" onclick="loadOrders()">Refresh</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="table-wrap">' +
+        '<table>' +
+          '<thead><tr>' +
+            '<th>Order ID</th><th>Token</th><th>Side</th><th>Type</th>' +
+            '<th>Price</th><th>Qty</th><th>Filled</th><th>Status</th>' +
+          '</tr></thead>' +
+          '<tbody id="orders-tbody">' +
+            '<tr class="empty-row"><td colspan="8">' +
+              '<span class="spinner"></span>Loading...</td></tr>' +
+          '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+  loadOrders();
+  st.refreshTimer = setInterval(loadOrders, 5000);
+}
+
+async function loadOrders()
+{
+  var tbody = $('orders-tbody');
+  if (!tbody) { stopRefresh(); return; }
+  try
+  {
+    var data = await sendCmd(TC.GET_MY_ORDERS, {});
+    var rows = Array.isArray(data) ? data : [];
+    renderOrders(rows);
+  }
+  catch(e)
+  {
+    var el = $('orders-tbody');
+    if (el) { el.innerHTML = '<tr class="empty-row"><td colspan="8" style="color:var(--danger)">' +
+                              escHtml(e.message) + '</td></tr>'; }
+  }
+}
+
+function renderOrders(rows)
+{
+  var tbody = $('orders-tbody');
+  if (!tbody) { return; }
+  var ts = $('orders-ts');
+  if (ts) { ts.textContent = 'Updated ' + new Date().toLocaleTimeString(); }
+  if (!rows.length)
+  {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No orders</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(function(r)
+  {
+    var side = r.side || '-';
+    var sideBadge = '<span class="badge ' + (side === 'BUY' ? 'badge-green' : 'badge-red') + '">' +
+                    escHtml(side) + '</span>';
+    return '<tr>' +
+      '<td style="font-family:monospace;font-size:12px">' + r.orderId + '</td>' +
+      '<td>' + r.token + '</td>' +
+      '<td>' + sideBadge + '</td>' +
+      '<td>' + escHtml(r.type || r.orderType || '-') + '</td>' +
+      '<td style="font-family:monospace">' + fmtNum(r.price) + '</td>' +
+      '<td>' + r.qty + '</td>' +
+      '<td>' + (r.filled || r.filledQty || 0) + '</td>' +
+      '<td>' + orderStatusBadge(r.status) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function orderStatusBadge(status)
+{
+  var s = (status || '').toUpperCase();
+  if (s === 'COMPLETE' || s === 'FILLED')
+  { return '<span class="badge badge-green">Filled</span>'; }
+  if (s === 'OPEN' || s === 'PENDING')
+  { return '<span class="badge badge-blue">Open</span>'; }
+  if (s === 'PARTIAL' || s === 'PART_FILL')
+  { return '<span class="badge badge-yellow">Partial</span>'; }
+  if (s === 'CANCELLED' || s === 'REJECTED')
+  { return '<span class="badge badge-red">' + escHtml(status) + '</span>'; }
+  return '<span class="badge badge-muted">' + escHtml(status || '-') + '</span>';
+}
+
+// ── Positions Page ───────────────────────────────────────────────────────────
+function pagePositions()
+{
+  $('content').innerHTML =
+    '<div class="page-title">Positions</div>' +
+    '<div class="page-sub">Open positions -- auto-refreshes every 5 seconds.</div>' +
+    '<div class="card">' +
+      '<div class="card-header">' +
+        '<div class="card-title">My Positions</div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span id="pos-ts" style="font-size:11px;color:var(--text-muted)"></span>' +
+          '<button class="btn btn-ghost btn-sm" onclick="loadPositions()">Refresh</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="table-wrap">' +
+        '<table>' +
+          '<thead><tr>' +
+            '<th>Token</th><th>Net Qty</th><th>Avg Price</th>' +
+            '<th>MTM</th><th>Unrealized P&amp;L</th>' +
+          '</tr></thead>' +
+          '<tbody id="pos-tbody">' +
+            '<tr class="empty-row"><td colspan="5">' +
+              '<span class="spinner"></span>Loading...</td></tr>' +
+          '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+  loadPositions();
+  st.refreshTimer = setInterval(loadPositions, 5000);
+}
+
+async function loadPositions()
+{
+  var tbody = $('pos-tbody');
+  if (!tbody) { stopRefresh(); return; }
+  try
+  {
+    var data = await sendCmd(TC.GET_MY_POSITIONS, {});
+    var rows = Array.isArray(data) ? data : [];
+    renderPositions(rows);
+  }
+  catch(e)
+  {
+    var el = $('pos-tbody');
+    if (el) { el.innerHTML = '<tr class="empty-row"><td colspan="5" style="color:var(--danger)">' +
+                              escHtml(e.message) + '</td></tr>'; }
+  }
+}
+
+function renderPositions(rows)
+{
+  var tbody = $('pos-tbody');
+  if (!tbody) { return; }
+  var ts = $('pos-ts');
+  if (ts) { ts.textContent = 'Updated ' + new Date().toLocaleTimeString(); }
+  if (!rows.length)
+  {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No open positions</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(function(r)
+  {
+    var pnl = parseFloat(r.pnl || r.unrealizedPnl || 0);
+    var pnlClass = pnl > 0 ? 'badge-green' : (pnl < 0 ? 'badge-red' : 'badge-muted');
+    var pnlStr = (pnl >= 0 ? '+' : '') + fmtNum(pnl);
+    return '<tr>' +
+      '<td style="font-family:monospace">' + r.token + '</td>' +
+      '<td>' + r.netQty + '</td>' +
+      '<td style="font-family:monospace">' + fmtNum(r.avgPrice || r.averagePrice) + '</td>' +
+      '<td style="font-family:monospace">' + fmtNum(r.mtm) + '</td>' +
+      '<td><span class="badge ' + pnlClass + '">' + pnlStr + '</span></td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Event bindings ───────────────────────────────────────────────────────────
+$('btn-logout').onclick  = doLogout;
+
+// ── Auto-login from login.html ────────────────────────────────────────────────
+function checkAutoLogin()
+{
+  var raw = sessionStorage.getItem('falcon_auth');
+  if (!raw) { window.location.href = 'login.html'; return; }
+  sessionStorage.removeItem('falcon_auth');
+  var auth;
+  try { auth = JSON.parse(raw); } catch(e) { window.location.href = 'login.html'; return; }
+  if (!auth.wsUrl || !auth.loginName || !auth.password)
+  {
+    window.location.href = 'login.html'; return;
+  }
+  st.loginName = auth.loginName;
+  st.ws = new WebSocket(auth.wsUrl);
+  st.ws.onopen    = function()
+  {
+    st.connected = true;
+    wsSend(CH.EVT, {
+      type: MSG.LOGIN, traderId: 0, sessionId: 0,
+      loginName: auth.loginName, password: auth.password,
+      ip: '127.0.0.1', machine: 'browser', version: '1.0'
+    });
+  };
+  st.ws.onmessage = function(e) { onWsMessage(e.data); };
+  st.ws.onerror   = function()  { window.location.href = 'login.html'; };
+  st.ws.onclose   = onWsClose;
+}
+checkAutoLogin();
+
+</script>
+
+</body>
+</html>
