@@ -1,4 +1,4 @@
-// Falcon Admin — Settings Page
+// Falcon Admin — settings page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -24,7 +24,57 @@
         </div>
       </div>
     </div>
-    `,
+`,
     init: null
   };
 })();
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  $('btn-refresh-settings').disabled = true;
+  $('settings-tbody').innerHTML = `<tr class="empty-row"><td colspan="3"><span class="spinner"></span>Loading...</td></tr>`;
+  try {
+    const data = await sendCommand(CMD.GET_ALL_SETTINGS, {});
+    const settings = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderSettingsTable(settings);
+  } catch (e) {
+    $('settings-tbody').innerHTML = `<tr class="empty-row"><td colspan="3" style="color:var(--danger)">${e.message}</td></tr>`;
+  } finally { $('btn-refresh-settings').disabled = false; }
+}
+
+function renderSettingsTable(rows) {
+  if (!rows.length) { $('settings-tbody').innerHTML = `<tr class="empty-row"><td colspan="3">No settings found</td></tr>`; return; }
+  $('settings-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.key||r.settingKey||'—'}</td>
+      <td>${r.value||r.settingValue||'—'}</td>
+      <td><button class="btn btn-ghost btn-sm"
+          data-k="${(r.key||r.settingKey||'').replace(/"/g,'&quot;')}"
+          data-v="${(r.value||r.settingValue||'').replace(/"/g,'&quot;')}"
+          onclick="openEditSetting(this.dataset.k,this.dataset.v)">Edit</button></td>
+    </tr>`).join('');
+}
+
+function openEditSetting(key, value) {
+  $('es-key').value       = key;
+  $('es-key-label').textContent = key;
+  $('es-value').value     = value;
+  $('es-error').textContent = '';
+  openModal('modal-setting');
+  $('es-value').focus();
+}
+
+async function saveSetting() {
+  $('es-error').textContent = '';
+  $('btn-save-setting').disabled = true;
+  const key   = $('es-key').value;
+  const value = $('es-value').value;
+  try {
+    await sendCommand(CMD.SET_SETTING, { key, value });
+    closeModal('modal-setting');
+    toast('Setting saved', 'success');
+    await loadSettings();
+  } catch (e) {
+    $('es-error').textContent = e.message;
+  } finally { $('btn-save-setting').disabled = false; }
+}

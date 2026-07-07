@@ -1,4 +1,4 @@
-// Falcon Admin — Orders Page
+// Falcon Admin — orders page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -32,7 +32,53 @@
         <div id="orders-count" style="margin-top:10px; font-size:12px; color:var(--text-muted);"></div>
       </div>
     </div>
-    `,
+`,
     init: null
   };
 })();
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+async function fetchOrders() {
+  $('btn-fetch-orders').disabled = true;
+  $('orders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9"><span class="spinner"></span>Loading...</td></tr>`;
+  const accountId = parseInt($('ord-account-id').value) || 0;
+  try {
+    const data = await sendCommand(CMD.GET_ORDERS_BY_TRADER, { accountId });
+    const rows = typeof data === 'string' ? JSON.parse(data) : (Array.isArray(data) ? data : []);
+    renderOrdersTable(rows);
+    $('orders-count').textContent = `${rows.length} order${rows.length !== 1 ? 's' : ''} fetched`;
+  } catch (e) {
+    $('orders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9" style="color:var(--danger)">${e.message}</td></tr>`;
+    $('orders-count').textContent = '';
+  } finally {
+    $('btn-fetch-orders').disabled = false;
+  }
+}
+
+function renderOrdersTable(rows) {
+  if (!rows.length) { $('orders-tbody').innerHTML = `<tr class="empty-row"><td colspan="9">No orders found</td></tr>`; return; }
+  $('orders-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.orderId}</td>
+      <td>${r.accountId}</td>
+      <td>${r.token}</td>
+      <td>${sideBadge(r.side)}</td>
+      <td>${r.type||'—'}</td>
+      <td>${fmtN(r.price)}</td>
+      <td>${fmtN(r.qty)}</td>
+      <td>${fmtN(r.filledQty)}</td>
+      <td>${statusBadge(r.status)}</td>
+    </tr>`).join('');
+}
+
+async function exportOrders() {
+  $('btn-export-orders').disabled = true;
+  const accountId = parseInt($('ord-account-id').value) || 0;
+  try {
+    const data = await sendCommand(CMD.EXPORT_ORDERS, { accountId });
+    const csv  = typeof data === 'string' ? data : (data && data.csv ? data.csv : JSON.stringify(data));
+    downloadCsv(csv, `orders_${fmtDateStamp()}.csv`);
+    toast('Export downloaded', 'success');
+  } catch (e) { toast('Export failed: ' + e.message, 'error'); }
+  finally { $('btn-export-orders').disabled = false; }
+}
