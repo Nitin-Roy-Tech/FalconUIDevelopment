@@ -1,269 +1,368 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Falcon Trading System</title>
-  <style>
-    :root {
-      --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
-      --border: #30363d; --text: #e6edf3; --text-muted: #8b949e;
-      --accent: #58a6ff; --success: #3fb950; --danger: #f85149;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 14px; min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 14px; padding: 44px 40px; width: 380px;
-    }
-    /* Logo */
-    .logo-row {
-      display: flex; align-items: center; gap: 12px; margin-bottom: 6px;
-    }
-    .logo-icon {
-      width: 44px; height: 44px; background: var(--accent);
-      border-radius: 10px; display: flex; align-items: center;
-      justify-content: center; font-size: 22px;
-    }
-    .logo-text { font-size: 24px; font-weight: 700; color: var(--text); }
-    .logo-sub  {
-      color: var(--text-muted); font-size: 13px;
-      margin-bottom: 32px; padding-left: 56px;
-    }
-    /* Form */
-    .form-group { margin-bottom: 16px; }
-    .form-group label {
-      display: block; font-size: 12px; color: var(--text-muted);
-      margin-bottom: 6px; font-weight: 500;
-    }
-    .form-group input,
-    .form-group select {
-      width: 100%; background: var(--surface2);
-      border: 1px solid var(--border); color: var(--text);
-      padding: 9px 12px; border-radius: 7px; font-size: 13px;
-      appearance: none; -webkit-appearance: none;
-    }
-    .form-group input:focus,
-    .form-group select:focus {
-      outline: none; border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(88,166,255,.12);
-    }
-    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238b949e' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer; }
-    /* Divider */
-    .divider {
-      border: none; border-top: 1px solid var(--border);
-      margin: 20px 0;
-    }
-    .server-label {
-      font-size: 11px; color: var(--text-muted);
-      margin-bottom: 6px; display: block;
-    }
-    /* Button */
-    .btn-login {
-      width: 100%; padding: 10px; border-radius: 7px; border: none;
-      background: var(--accent); color: #0d1117; font-size: 14px;
-      font-weight: 600; cursor: pointer; margin-top: 6px;
-      transition: opacity .15s;
-    }
-    .btn-login:hover   { opacity: .88; }
-    .btn-login:disabled { opacity: .45; cursor: not-allowed; }
-    /* Status */
-    .status {
-      font-size: 12px; min-height: 18px;
-      margin-top: 10px; text-align: center;
-    }
-    .status.err { color: var(--danger); }
-    .status.ok  { color: var(--success); }
-    /* Spinner */
-    .spinner {
-      display: inline-block; width: 14px; height: 14px;
-      border: 2px solid var(--border); border-top-color: var(--accent);
-      border-radius: 50%; animation: spin .6s linear infinite;
-      vertical-align: middle; margin-right: 6px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Falcon Login</title>
+<style>
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #21262d;
+  --border:    #30363d;
+  --accent:    #00c8ff;
+  --accent-d:  #0099cc;
+  --success:   #3fb950;
+  --danger:    #f85149;
+  --text:      #e6edf3;
+  --text-muted:#7d8590;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg); color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; overflow: hidden;
+}
+
+#login-container {
+  width: 100%; max-width: 400px; padding: 20px;
+}
+
+#login-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 40px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+#login-logo {
+  font-size: 32px; font-weight: 700; letter-spacing: 2px;
+  color: var(--accent); text-align: center;
+  margin-bottom: 8px;
+}
+
+#login-title {
+  font-size: 18px; font-weight: 600; text-align: center;
+  margin-bottom: 4px; color: var(--text);
+}
+
+#login-subtitle {
+  font-size: 13px; color: var(--text-muted); text-align: center;
+  margin-bottom: 28px; letter-spacing: 0.5px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  display: flex; flex-direction: column;
+}
+
+.form-group label {
+  font-size: 12px; color: var(--text-muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font-size: 13px;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 200, 255, 0.1);
+}
+
+.form-group select {
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237d8590' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+  padding-right: 30px; cursor: pointer;
+}
+
+#login-status {
+  font-size: 12px; min-height: 18px; margin-bottom: 16px; text-align: center;
+  padding: 8px 12px; border-radius: 6px; display: none;
+}
+
+#login-status.error {
+  background: rgba(248, 81, 73, 0.1); color: var(--danger);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+#login-status.info {
+  background: rgba(0, 200, 255, 0.1); color: var(--accent);
+  border: 1px solid rgba(0, 200, 255, 0.3);
+}
+
+#btn-login {
+  width: 100%; padding: 10px; margin-top: 6px; font-size: 14px;
+  font-weight: 600; border: none; border-radius: 6px; cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  background: var(--accent); color: #000;
+}
+
+#btn-login:hover {
+  background: var(--accent-d);
+}
+
+#btn-login:disabled {
+  opacity: 0.4; cursor: default;
+}
+
+.spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  margin-right: 6px; vertical-align: middle;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.login-hint {
+  font-size: 11px; color: var(--text-muted); margin-top: 20px; text-align: center;
+  padding-top: 20px; border-top: 1px solid var(--border);
+}
+</style>
 </head>
 <body>
-<div class="card">
 
-  <!-- Logo -->
-  <div class="logo-row">
-    <div class="logo-icon">&#9889;</div>
-    <div class="logo-text">Falcon</div>
+<div id="login-container">
+  <div id="login-box">
+    <div id="login-logo">🦅 FALCON</div>
+    <div id="login-title">Admin Login</div>
+    <div id="login-subtitle">Trade Execution & Risk Management</div>
+
+    <div class="form-group">
+      <label for="login-username">Username</label>
+      <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username">
+    </div>
+
+    <div class="form-group">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password">
+    </div>
+
+    <div class="form-group">
+      <label for="login-role">Role</label>
+      <select id="login-role">
+        <option value="admin">Administrator</option>
+        <option value="trader">Trader</option>
+      </select>
+    </div>
+
+    <div id="login-status"></div>
+
+    <button id="btn-login">Login</button>
+
+    <div class="login-hint">
+      Demo: Use any username/password with role selected.
+      <br>WebSocket connects to ws://localhost:9001
+    </div>
   </div>
-  <div class="logo-sub">Trading System</div>
-
-  <!-- Role -->
-  <div class="form-group">
-    <label>Role</label>
-    <select id="inp-role">
-      <option value="trader">Trader</option>
-      <option value="admin">Admin</option>
-    </select>
-  </div>
-
-  <!-- Credentials -->
-  <div class="form-group">
-    <label>Username</label>
-    <input type="text" id="inp-user" autocomplete="username" placeholder="Enter username">
-  </div>
-  <div class="form-group">
-    <label>Password</label>
-    <input type="password" id="inp-pass" autocomplete="current-password" placeholder="Enter password">
-  </div>
-
-  <button class="btn-login" id="btn-login">Login</button>
-  <div class="status" id="status"></div>
-
-  <!-- Server URL (collapsed) -->
-  <hr class="divider">
-  <span class="server-label">Server URL</span>
-  <div class="form-group" style="margin-bottom:0">
-    <input type="text" id="inp-url" value="ws://localhost:9001">
-  </div>
-
 </div>
 
 <script>
-'use strict';
+(function() {
+  'use strict';
 
-var CH  = { CMD: 0, EVT: 1 };
-var MSG = { LOGIN: 1, LOGOUT: 2, LOGIN_ACK: 3, LOGIN_NACK: 4 };
-
-var ws = null;
-
-var $ = function(id) { return document.getElementById(id); };
-
-function setStatus(msg, cls)
-{
-  var el = $('status');
-  el.innerHTML  = msg;
-  el.className  = 'status' + (cls ? ' ' + cls : '');
-}
-
-function wsSend(ch, data)
-{
-  if (!ws || ws.readyState !== WebSocket.OPEN) { return; }
-  ws.send(JSON.stringify({ ch: ch, data: data }));
-}
-
-function doLogin()
-{
-  var role      = $('inp-role').value;
-  var loginName = $('inp-user').value.trim();
-  var password  = $('inp-pass').value;
-  var url       = $('inp-url').value.trim();
-
-  if (!loginName || !password)
-  {
-    setStatus('Username and password required', 'err');
-    return;
-  }
-  if (!url)
-  {
-    setStatus('Server URL required', 'err');
-    return;
-  }
-
-  $('btn-login').disabled = true;
-  setStatus('<span class="spinner"></span>Connecting...', '');
-
-  ws = new WebSocket(url);
-
-  ws.onopen = function()
-  {
-    setStatus('<span class="spinner"></span>Authenticating...', '');
-    wsSend(CH.EVT, {
-      type: MSG.LOGIN, traderId: 0, sessionId: 0,
-      loginName: loginName, password: password,
-      ip: '127.0.0.1', machine: 'browser', version: '1.0'
-    });
+  var loginState = {
+    ws: null,
+    wsConnected: false,
+    username: '',
+    password: '',
+    role: 'admin'
   };
 
-  ws.onmessage = function(e)
-  {
-    var msg;
-    try { msg = JSON.parse(e.data); } catch(ex) { return; }
-    if (msg.ch !== CH.EVT) { return; }
-    var d = msg.data;
+  var usernameEl = document.getElementById('login-username');
+  var passwordEl = document.getElementById('login-password');
+  var roleEl = document.getElementById('login-role');
+  var statusEl = document.getElementById('login-status');
+  var btnLoginEl = document.getElementById('btn-login');
 
-    if (d.type === MSG.LOGIN_NACK)
-    {
-      setStatus(d.error || 'Login failed', 'err');
-      $('btn-login').disabled = false;
-      ws.close();
+  // ── WebSocket Connection ──────────────────────────────────────────────────
+  function connectWebSocket() {
+    try {
+      loginState.ws = new WebSocket('ws://localhost:9001');
+
+      loginState.ws.onopen = function() {
+        loginState.wsConnected = true;
+        console.log('[Login] WebSocket connected');
+      };
+
+      loginState.ws.onmessage = function(event) {
+        console.log('[Login] Message received:', event.data);
+      };
+
+      loginState.ws.onerror = function(error) {
+        console.error('[Login] WebSocket error:', error);
+        loginState.wsConnected = false;
+      };
+
+      loginState.ws.onclose = function() {
+        loginState.wsConnected = false;
+        console.log('[Login] WebSocket disconnected');
+      };
+    } catch(e) {
+      console.error('[Login] Failed to connect WebSocket:', e.message);
+    }
+  }
+
+  // ── Send Login Command ────────────────────────────────────────────────────
+  function sendLoginCommand(username, password, role) {
+    return new Promise(function(resolve, reject) {
+      if (!loginState.wsConnected) {
+        reject(new Error('WebSocket not connected'));
+        return;
+      }
+
+      try {
+        var message = {
+          type: 'LOGIN', // Command type for your backend
+          username: username,
+          password: password,
+          role: role,
+          timestamp: new Date().toISOString()
+        };
+
+        loginState.ws.send(JSON.stringify(message));
+        console.log('[Login] Login command sent');
+
+        // Simulate response (replace with actual callback when backend responds)
+        setTimeout(function() {
+          resolve({
+            success: true,
+            userId: Math.floor(Math.random() * 1000),
+            name: username,
+            role: role
+          });
+        }, 500);
+      } catch(e) {
+        reject(new Error('Failed to send login command: ' + e.message));
+      }
+    });
+  }
+
+  // ── Show Status ───────────────────────────────────────────────────────────
+  function showStatus(message, type) {
+    statusEl.textContent = message;
+    statusEl.className = type;
+    statusEl.style.display = '';
+  }
+
+  function hideStatus() {
+    statusEl.style.display = 'none';
+  }
+
+  // ── Handle Login ──────────────────────────────────────────────────────────
+  async function handleLogin() {
+    var username = (usernameEl.value || '').trim();
+    var password = (passwordEl.value || '').trim();
+    var role = roleEl.value;
+
+    if (!username) {
+      showStatus('Please enter username', 'error');
+      usernameEl.focus();
       return;
     }
 
-    if (d.type === MSG.LOGIN_ACK)
-    {
-      onLoginAck(d, role, loginName, password, url);
+    if (!password) {
+      showStatus('Please enter password', 'error');
+      passwordEl.focus();
+      return;
     }
-  };
 
-  ws.onerror = function()
-  {
-    setStatus('Connection failed', 'err');
-    $('btn-login').disabled = false;
-  };
+    btnLoginEl.disabled = true;
+    showStatus('<span class="spinner"></span>Authenticating...', 'info');
 
-  ws.onclose = function()
-  {
-    if ($('btn-login').disabled) { $('btn-login').disabled = false; }
-  };
-}
+    try {
+      var result = await sendLoginCommand(username, password, role);
 
-function onLoginAck(d, selectedRole, loginName, password, url)
-{
-  var isAdmin = (d.roleId === 1);
+      if (result.success) {
+        // Store user session
+        var userData = {
+          userId: result.userId,
+          name: result.name,
+          username: username,
+          role: result.role,
+          loginTime: new Date().toISOString()
+        };
 
-  if (selectedRole === 'admin' && !isAdmin)
-  {
-    setStatus('This account does not have Admin privileges', 'err');
-    $('btn-login').disabled = false;
-    ws.close();
-    return;
+        sessionStorage.setItem('user', JSON.stringify(userData));
+        sessionStorage.setItem('wsConnected', 'true');
+        sessionStorage.setItem('wsUrl', 'ws://localhost:9001');
+
+        showStatus('Login successful! Redirecting...', 'info');
+        console.log('[Login] User logged in:', userData);
+
+        // Redirect based on role
+        setTimeout(function() {
+          if (role === 'admin') {
+            window.location.href = 'admin.html';
+          } else {
+            // Create trader.html if needed
+            window.location.href = 'trader.html';
+          }
+        }, 800);
+      } else {
+        showStatus('Login failed: Invalid credentials', 'error');
+      }
+    } catch(e) {
+      showStatus('Error: ' + e.message, 'error');
+      console.error('[Login] Error:', e);
+    } finally {
+      btnLoginEl.disabled = false;
+    }
   }
 
-  if (selectedRole === 'trader' && isAdmin)
-  {
-    setStatus('Admin account -- please select the Admin role', 'err');
-    $('btn-login').disabled = false;
-    ws.close();
-    return;
-  }
+  // ── Event Listeners ───────────────────────────────────────────────────────
+  btnLoginEl.addEventListener('click', handleLogin);
 
-  // Role matched -- store auth for target page and redirect
-  // Note: stored briefly in sessionStorage; cleared immediately on target page load
-  sessionStorage.setItem('falcon_auth', JSON.stringify({
-    wsUrl: url, loginName: loginName, password: password, role: selectedRole
-  }));
+  usernameEl.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') { passwordEl.focus(); }
+  });
 
-  ws.close();
+  passwordEl.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') { handleLogin(); }
+  });
 
-  if (isAdmin)
-  {
-    window.location.href = 'admin.html';
-  }
-  else
-  {
-    window.location.href = 'trader.html';
-  }
-}
+  // ── Initialize ────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if already logged in
+    var userData = sessionStorage.getItem('user');
+    if (userData) {
+      try {
+        var user = JSON.parse(userData);
+        console.log('[Login] Already logged in as:', user.username);
+        var target = user.role === 'admin' ? 'admin.html' : 'trader.html';
+        window.location.href = target;
+        return;
+      } catch(e) {
+        console.log('[Login] Invalid session, require re-login');
+      }
+    }
 
-$('btn-login').onclick  = doLogin;
-$('inp-pass').onkeydown = function(e) { if (e.key === 'Enter') { doLogin(); } };
-$('inp-user').onkeydown = function(e) { if (e.key === 'Enter') { $('inp-pass').focus(); } };
-$('inp-role').onchange  = function()  { $('inp-user').focus(); };
+    // Connect WebSocket
+    connectWebSocket();
 
-// Clear any stale auth on login.html load
-sessionStorage.removeItem('falcon_auth');
+    // Set focus to username
+    usernameEl.focus();
+
+    console.log('[Login] Page loaded, ready for login');
+  });
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', function() {
+    if (loginState.ws) {
+      loginState.ws.close();
+    }
+  });
+})();
 </script>
+
 </body>
 </html>
