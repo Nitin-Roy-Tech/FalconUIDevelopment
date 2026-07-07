@@ -16,6 +16,8 @@ const state = window.state || {
 };
 window.state = state;
 
+const COMMAND_TIMEOUT_MS = 15000;
+
 function getContentHost() {
   return $('content') || $('page-content');
 }
@@ -42,7 +44,7 @@ function sendCommand(type, extra) {
     state.pending[id] = { resolve, reject };
     setTimeout(() => {
       if (state.pending[id]) { delete state.pending[id]; reject(new Error('Timeout')); }
-    }, 15000);
+    }, COMMAND_TIMEOUT_MS);
     send(CH.COMMAND, { type, id, ...extra });
   });
 }

@@ -666,7 +666,7 @@
     }
     legSymTimer = setTimeout(async function() {
       try {
-        var raw = await sendCommand(23, { symbol: text.toUpperCase() });
+        var raw = await sendCommand(CMD.SEARCH_INSTRUMENTS, { symbol: text.toUpperCase() });
         var arr = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
         if (!drop) { return; }
         if (!arr || !arr.length) { drop.style.display = 'none'; drop.innerHTML = ''; return; }

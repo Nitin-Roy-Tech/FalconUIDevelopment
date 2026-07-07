@@ -262,7 +262,7 @@
           $('nse-progress-label').textContent = 'StreamID mapped for ' + streamsMapped.toLocaleString() + ' tokens.';
         }
         $('nse-progress-bar').style.width = '20%';
-        var kBatch = 5000;
+        var kBatch = NSE_BATCH_SIZE;
         var exchId = parseInt($('sel-exchange').value);
         var segId  = parseInt($('sel-segment').value);
         var numBatches = Math.ceil(records.length / kBatch);
@@ -306,6 +306,8 @@ function onExchangeChange()
 }
 
 // ── Instruments ───────────────────────────────────────────────────────────────
+const NSE_BATCH_SIZE = 5000;
+
 async function refreshCount() {
   try {
     const data   = await sendCommand(CMD.GET_INSTRUMENT_COUNT, {});
