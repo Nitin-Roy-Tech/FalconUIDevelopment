@@ -1,4 +1,4 @@
-// Falcon Admin — traders page
+// Falcon Admin — Traders Page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -25,7 +25,7 @@
         </div>
       </div>
     </div>
-`,
+    `,
     init: null
   };
 })();

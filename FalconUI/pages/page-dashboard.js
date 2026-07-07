@@ -1,4 +1,4 @@
-// Falcon Admin — dashboard page
+// Falcon Admin — Dashboard Page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -48,7 +48,7 @@
         </div>
       </div>
     </div>
-`,
+    `,
     init: null
   };
 })();

@@ -1,4 +1,4 @@
-// Falcon Admin — audit page
+// Falcon Admin — Audit Log Page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -43,7 +43,7 @@
         <div id="audit-count" style="margin-top:10px; font-size:12px; color:var(--text-muted);"></div>
       </div>
     </div>
-`,
+    `,
     init: null
   };
 })();

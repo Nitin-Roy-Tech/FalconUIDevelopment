@@ -1,4 +1,4 @@
-// Falcon Admin — settings page
+// Falcon Admin — Settings Page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -24,9 +24,7 @@
         </div>
       </div>
     </div>
-`,
-    init: function () {
-      loadSettings();
-    }
+    `,
+    init: null
   };
 })();

@@ -1,4 +1,4 @@
-// Falcon Admin — orders page
+// Falcon Admin — Orders Page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -32,7 +32,7 @@
         <div id="orders-count" style="margin-top:10px; font-size:12px; color:var(--text-muted);"></div>
       </div>
     </div>
-`,
+    `,
     init: null
   };
 })();

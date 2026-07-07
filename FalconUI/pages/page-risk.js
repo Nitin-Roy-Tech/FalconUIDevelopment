@@ -1,4 +1,4 @@
-// Falcon Admin — risk page
+// Falcon Admin — Risk Limits Page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -7,7 +7,6 @@
     <div id="page-risk" class="page active">
       <h2>Risk Limits</h2>
       <p class="page-sub">Configure global and per-trader risk parameters.</p>
-
       <div class="card">
         <div class="card-title">Global Risk</div>
         <div class="form-row">
@@ -34,7 +33,6 @@
         </div>
         <div id="risk-global-msg" style="margin-top:10px; font-size:12px; min-height:16px;"></div>
       </div>
-
       <div class="card">
         <div class="card-title">Trader Risk</div>
         <div class="form-row">
@@ -64,9 +62,7 @@
         <div id="risk-trader-msg" style="margin-top:10px; font-size:12px; min-height:16px;"></div>
       </div>
     </div>
-`,
-    init: function () {
-      loadGlobalRisk();
-    }
+    `,
+    init: null
   };
 })();

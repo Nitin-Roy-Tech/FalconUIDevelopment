@@ -1,4 +1,4 @@
-// Falcon Admin — positions page
+// Falcon Admin — Positions Page
 (function () {
   'use strict';
   window.FP = window.FP || {};
@@ -49,7 +49,7 @@
         </div>
       </div>
     </div>
-`,
+    `,
     init: null
   };
 })();
