@@ -13,7 +13,7 @@
     currentPage: 'dashboard'
   };
 
-  // ── WebSocket Connection (placeholder for your backend) ────────────────────
+  // ── WebSocket Connection ──────────────────────────────────────────────────
   var ws = null;
   var wsConnected = false;
 
@@ -23,7 +23,7 @@
       
       ws.onopen = function() {
         wsConnected = true;
-        log('✓ WebSocket connected', 'info');
+        log('✓ WebSocket connected to ' + url, 'info');
       };
 
       ws.onmessage = function(event) {
@@ -44,7 +44,9 @@
     }
   };
 
-  // ── Backend Communication ──────────────────────────────────────────────────
+  // ── Backend Communication ────────────────────────────────────────────────────────
+  // UNCHANGED - This is the core backend communication function
+  // All page code depends on this exact function signature
   window.sendCommand = function(commandType, payload) {
     return new Promise(function(resolve, reject) {
       if (!wsConnected) {
@@ -121,11 +123,12 @@
     log('Navigation initialized', 'info');
   };
 
-  // ── Logout Handler ─────────────────────────────────────────────────────────
+  // ── Logout Handler ──────────────────────────────────────────────────────
   window.logout = function() {
     AppState.loggedIn = false;
     AppState.user = {};
     sessionStorage.clear();
+    if (ws) { ws.close(); }
     window.location.href = 'login.html';
   };
 
@@ -160,6 +163,10 @@
 
       // Load default page (dashboard)
       showPage('dashboard');
+
+      // Initialize WebSocket from session
+      var wsUrl = sessionStorage.getItem('wsUrl') || 'ws://localhost:9001';
+      initWebSocket(wsUrl);
 
       log('✓ App initialized for: ' + AppState.user.name, 'info');
     } catch(e) {
