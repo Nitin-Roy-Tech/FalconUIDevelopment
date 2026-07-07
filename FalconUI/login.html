@@ -79,7 +79,7 @@ body {
 
 .form-group select {
   appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237d8590' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237d8590' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 10px center;
   padding-right: 30px; cursor: pointer;
 }
@@ -184,183 +184,212 @@ body {
   var statusEl = document.getElementById('login-status');
   var btnLoginEl = document.getElementById('btn-login');
 
+  // ── Protocol Constants ────────────────────────────────────────────────────
+  var CH  = { CMD: 0, EVT: 1 };
+  var MSG = { LOGIN: 1, LOGOUT: 2, LOGIN_ACK: 3, LOGIN_NACK: 4 };
+
+  // ── Binary Protocol Helpers ───────────────────────────────────────────────
+  function stringToBytes(str) {
+    var bytes = [];
+    for (var i = 0; i < str.length; i++) {
+      bytes.push(str.charCodeAt(i));
+    }
+    bytes.push(0); // null terminator
+    return bytes;
+  }
+
+  function int32ToBytes(value) {
+    return [
+      (value >> 24) & 0xFF,
+      (value >> 16) & 0xFF,
+      (value >> 8) & 0xFF,
+      value & 0xFF
+    ];
+  }
+
+  function buildLoginPacket(username, password) {
+    var packet = [];
+    
+    // Byte 0: Channel (EVT = 1)
+    packet.push(CH.EVT);
+    
+    // Byte 1: Message type (LOGIN = 1)
+    packet.push(MSG.LOGIN);
+    
+    // Bytes 2-5: Trader ID (0, network byte order)
+    packet = packet.concat(int32ToBytes(0));
+    
+    // Bytes 6-9: Session ID (0, network byte order)
+    packet = packet.concat(int32ToBytes(0));
+    
+    // Bytes 10+: Login name (null-terminated string)
+    packet = packet.concat(stringToBytes(username));
+    
+    // Password (null-terminated string)
+    packet = packet.concat(stringToBytes(password));
+    
+    // IP address (null-terminated string)
+    packet = packet.concat(stringToBytes('127.0.0.1'));
+    
+    // Machine name (null-terminated string)
+    packet = packet.concat(stringToBytes('browser'));
+    
+    // Version (null-terminated string)
+    packet = packet.concat(stringToBytes('1.0'));
+    
+    return new Uint8Array(packet);
+  }
+
   // ── WebSocket Connection ──────────────────────────────────────────────────
   function connectWebSocket() {
     try {
       loginState.ws = new WebSocket('ws://localhost:9001');
+      loginState.ws.binaryType = 'arraybuffer'; // Receive as binary
 
       loginState.ws.onopen = function() {
         loginState.wsConnected = true;
         console.log('[Login] WebSocket connected');
+        showStatus('Connected. Ready to login.', 'info');
       };
 
       loginState.ws.onmessage = function(event) {
         console.log('[Login] Message received:', event.data);
+        handleLoginResponse(event.data);
       };
 
       loginState.ws.onerror = function(error) {
         console.error('[Login] WebSocket error:', error);
+        showStatus('Connection error: ' + error.message, 'error');
         loginState.wsConnected = false;
       };
 
       loginState.ws.onclose = function() {
+        console.log('[Login] WebSocket closed');
         loginState.wsConnected = false;
-        console.log('[Login] WebSocket disconnected');
       };
-    } catch(e) {
-      console.error('[Login] Failed to connect WebSocket:', e.message);
+    } catch (e) {
+      console.error('[Login] Failed to connect:', e.message);
+      showStatus('Failed to connect: ' + e.message, 'error');
     }
   }
 
-  // ── Send Login Command ────────────────────────────────────────────────────
-  function sendLoginCommand(username, password, role) {
-    return new Promise(function(resolve, reject) {
-      if (!loginState.wsConnected) {
-        reject(new Error('WebSocket not connected'));
-        return;
-      }
-
-      try {
-        var message = {
-          type: 'LOGIN', // Command type for your backend
-          username: username,
-          password: password,
-          role: role,
-          timestamp: new Date().toISOString()
-        };
-
-        loginState.ws.send(JSON.stringify(message));
-        console.log('[Login] Login command sent');
-
-        // Simulate response (replace with actual callback when backend responds)
-        setTimeout(function() {
-          resolve({
-            success: true,
-            userId: Math.floor(Math.random() * 1000),
-            name: username,
-            role: role
-          });
-        }, 500);
-      } catch(e) {
-        reject(new Error('Failed to send login command: ' + e.message));
-      }
-    });
-  }
-
-  // ── Show Status ───────────────────────────────────────────────────────────
-  function showStatus(message, type) {
-    statusEl.textContent = message;
-    statusEl.className = type;
-    statusEl.style.display = '';
-  }
-
-  function hideStatus() {
-    statusEl.style.display = 'none';
-  }
-
-  // ── Handle Login ──────────────────────────────────────────────────────────
-  async function handleLogin() {
-    var username = (usernameEl.value || '').trim();
-    var password = (passwordEl.value || '').trim();
-    var role = roleEl.value;
-
-    if (!username) {
-      showStatus('Please enter username', 'error');
-      usernameEl.focus();
+  function handleLoginResponse(data) {
+    if (!data || data.byteLength < 2) {
+      showStatus('Invalid response from server', 'error');
       return;
     }
 
-    if (!password) {
-      showStatus('Please enter password', 'error');
-      passwordEl.focus();
+    var view = new Uint8Array(data);
+    var channel = view[0];
+    var msgType = view[1];
+
+    if (channel !== CH.EVT) {
+      console.error('[Login] Invalid channel:', channel);
       return;
     }
 
-    btnLoginEl.disabled = true;
-    showStatus('<span class="spinner"></span>Authenticating...', 'info');
-
-    try {
-      var result = await sendLoginCommand(username, password, role);
-
-      if (result.success) {
-        // Store user session
-        var userData = {
-          userId: result.userId,
-          name: result.name,
-          username: username,
-          role: result.role,
-          loginTime: new Date().toISOString()
-        };
-
-        sessionStorage.setItem('user', JSON.stringify(userData));
-        sessionStorage.setItem('wsConnected', 'true');
-        sessionStorage.setItem('wsUrl', 'ws://localhost:9001');
-
-        showStatus('Login successful! Redirecting...', 'info');
-        console.log('[Login] User logged in:', userData);
-
-        // Redirect based on role
-        setTimeout(function() {
-          if (role === 'admin') {
-            window.location.href = 'admin.html';
-          } else {
-            // Create trader.html if needed
-            window.location.href = 'trader.html';
-          }
-        }, 800);
-      } else {
-        showStatus('Login failed: Invalid credentials', 'error');
-      }
-    } catch(e) {
-      showStatus('Error: ' + e.message, 'error');
-      console.error('[Login] Error:', e);
-    } finally {
+    if (msgType === MSG.LOGIN_ACK) {
+      console.log('[Login] Login successful');
+      showStatus('Login successful!', 'info');
+      
+      // Extract session info from ACK (adjust based on backend protocol)
+      var sessionData = {
+        sessionId: 0,
+        traderId: 0,
+        role: loginState.role,
+        username: loginState.username
+      };
+      
+      // Store and redirect
+      sessionStorage.setItem('user', JSON.stringify(sessionData));
+      setTimeout(function() {
+        window.location.href = 'admin.html';
+      }, 500);
+    } else if (msgType === MSG.LOGIN_NACK) {
+      console.error('[Login] Login failed');
+      showStatus('Login failed. Invalid credentials.', 'error');
+      btnLoginEl.disabled = false;
+    } else {
+      console.error('[Login] Unknown message type:', msgType);
+      showStatus('Unknown response from server', 'error');
       btnLoginEl.disabled = false;
     }
   }
 
-  // ── Event Listeners ───────────────────────────────────────────────────────
-  btnLoginEl.addEventListener('click', handleLogin);
+  function showStatus(message, type) {
+    statusEl.textContent = message;
+    statusEl.className = type;
+    statusEl.style.display = 'block';
+  }
+
+  function sendLogin() {
+    if (!loginState.wsConnected) {
+      showStatus('Not connected to server', 'error');
+      return;
+    }
+
+    var username = usernameEl.value.trim();
+    var password = passwordEl.value.trim();
+
+    if (!username || !password) {
+      showStatus('Please enter username and password', 'error');
+      return;
+    }
+
+    loginState.username = username;
+    loginState.password = password;
+    loginState.role = roleEl.value;
+
+    btnLoginEl.disabled = true;
+    showStatus('Sending login...', 'info');
+
+    try {
+      var packet = buildLoginPacket(username, password);
+      console.log('[Login] Sending packet:', packet);
+      loginState.ws.send(packet.buffer);
+    } catch (e) {
+      console.error('[Login] Failed to send:', e.message);
+      showStatus('Failed to send login: ' + e.message, 'error');
+      btnLoginEl.disabled = false;
+    }
+  }
+
+  // ── Event Handlers ────────────────────────────────────────────────────────
+  btnLoginEl.addEventListener('click', function() {
+    if (loginState.wsConnected) {
+      sendLogin();
+    } else {
+      showStatus('Connecting...', 'info');
+      connectWebSocket();
+      
+      setTimeout(function() {
+        if (loginState.wsConnected) {
+          sendLogin();
+        } else {
+          showStatus('Failed to connect to server', 'error');
+          btnLoginEl.disabled = false;
+        }
+      }, 1000);
+    }
+  });
 
   usernameEl.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') { passwordEl.focus(); }
+    if (e.key === 'Enter') {
+      btnLoginEl.click();
+    }
   });
 
   passwordEl.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') { handleLogin(); }
+    if (e.key === 'Enter') {
+      btnLoginEl.click();
+    }
   });
 
   // ── Initialize ────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', function() {
-    // Check if already logged in
-    var userData = sessionStorage.getItem('user');
-    if (userData) {
-      try {
-        var user = JSON.parse(userData);
-        console.log('[Login] Already logged in as:', user.username);
-        var target = user.role === 'admin' ? 'admin.html' : 'trader.html';
-        window.location.href = target;
-        return;
-      } catch(e) {
-        console.log('[Login] Invalid session, require re-login');
-      }
-    }
-
-    // Connect WebSocket
-    connectWebSocket();
-
-    // Set focus to username
-    usernameEl.focus();
-
-    console.log('[Login] Page loaded, ready for login');
-  });
-
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', function() {
-    if (loginState.ws) {
-      loginState.ws.close();
-    }
-  });
+  console.log('[Login] Page loaded');
+  
+  // Pre-connect on load
+  connectWebSocket();
 })();
 </script>
 
